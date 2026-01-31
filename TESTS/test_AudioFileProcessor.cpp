@@ -6,7 +6,8 @@ TEST_CASE("AudioFileProcessor construction", "[AudioFileProcessor]")
 {
     SECTION("Can create AudioFileProcessor instance")
     {
-        REQUIRE_NOTHROW(AudioFileProcessor processor);
+        AudioFileProcessor processor;
+        REQUIRE(processor.getLastError().isEmpty());
     }
 }
 

@@ -6,31 +6,31 @@ TEST_CASE("FileUtils::isSupportedAudioFile", "[FileUtils]")
     SECTION("WAV files are supported")
     {
         juce::File wavFile("test.wav");
-        REQUIRE(FileUtils::isSupportedAudioFile(wavFile) == true);
+        CHECK(FileUtils::isSupportedAudioFile(wavFile) == true);
 
         juce::File upperWav("TEST.WAV");
-        REQUIRE(FileUtils::isSupportedAudioFile(upperWav) == true);
+        CHECK(FileUtils::isSupportedAudioFile(upperWav) == true);
     }
 
     SECTION("MP3 files are supported")
     {
         juce::File mp3File("test.mp3");
-        REQUIRE(FileUtils::isSupportedAudioFile(mp3File) == true);
+        CHECK(FileUtils::isSupportedAudioFile(mp3File) == true);
 
         juce::File upperMp3("TEST.MP3");
-        REQUIRE(FileUtils::isSupportedAudioFile(upperMp3) == true);
+        CHECK(FileUtils::isSupportedAudioFile(upperMp3) == true);
     }
 
     SECTION("Other file types are not supported")
     {
         juce::File txtFile("test.txt");
-        REQUIRE(FileUtils::isSupportedAudioFile(txtFile) == false);
+        CHECK(FileUtils::isSupportedAudioFile(txtFile) == false);
 
         juce::File flacFile("test.flac");
-        REQUIRE(FileUtils::isSupportedAudioFile(flacFile) == false);
+        CHECK(FileUtils::isSupportedAudioFile(flacFile) == false);
 
         juce::File noExtension("test");
-        REQUIRE(FileUtils::isSupportedAudioFile(noExtension) == false);
+        CHECK(FileUtils::isSupportedAudioFile(noExtension) == false);
     }
 }
 
@@ -45,8 +45,8 @@ TEST_CASE("FileUtils::validateInputFile", "[FileUtils]")
         juce::String errorMsg;
         bool result = FileUtils::validateInputFile(testFile, errorMsg);
 
-        REQUIRE(result == true);
-        REQUIRE(errorMsg.isEmpty() == true);
+        CHECK(result == true);
+        CHECK(errorMsg.isEmpty() == true);
     }
 
     SECTION("Non-existent file fails validation")
@@ -56,9 +56,9 @@ TEST_CASE("FileUtils::validateInputFile", "[FileUtils]")
 
         bool result = FileUtils::validateInputFile(nonExistent, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
-        REQUIRE((errorMsg.contains("not found") || errorMsg.contains("does not exist")));
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
+        CHECK((errorMsg.contains("not found") || errorMsg.contains("does not exist")));
     }
 
     SECTION("Unsupported file type fails validation")
@@ -71,9 +71,9 @@ TEST_CASE("FileUtils::validateInputFile", "[FileUtils]")
         juce::String errorMsg;
         bool result = FileUtils::validateInputFile(tempFile, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
-        REQUIRE((errorMsg.contains("not supported") || errorMsg.contains("format")));
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
+        CHECK((errorMsg.contains("not supported") || errorMsg.contains("format")));
 
         // Cleanup
         tempFile.deleteFile();
@@ -86,8 +86,8 @@ TEST_CASE("FileUtils::validateInputFile", "[FileUtils]")
 
         bool result = FileUtils::validateInputFile(dir, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
     }
 }
 
@@ -101,8 +101,8 @@ TEST_CASE("FileUtils::validateOutputPath", "[FileUtils]")
         juce::String errorMsg;
         bool result = FileUtils::validateOutputPath(outputFile, errorMsg);
 
-        REQUIRE(result == true);
-        REQUIRE(errorMsg.isEmpty() == true);
+        CHECK(result == true);
+        CHECK(errorMsg.isEmpty() == true);
     }
 
     SECTION("Valid MP3 output path passes validation")
@@ -113,8 +113,8 @@ TEST_CASE("FileUtils::validateOutputPath", "[FileUtils]")
         juce::String errorMsg;
         bool result = FileUtils::validateOutputPath(outputFile, errorMsg);
 
-        REQUIRE(result == true);
-        REQUIRE(errorMsg.isEmpty() == true);
+        CHECK(result == true);
+        CHECK(errorMsg.isEmpty() == true);
     }
 
     SECTION("Unsupported extension fails validation")
@@ -125,9 +125,9 @@ TEST_CASE("FileUtils::validateOutputPath", "[FileUtils]")
         juce::String errorMsg;
         bool result = FileUtils::validateOutputPath(outputFile, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
-        REQUIRE((errorMsg.contains("not supported") || errorMsg.contains("extension")));
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
+        CHECK((errorMsg.contains("not supported") || errorMsg.contains("extension")));
     }
 
     SECTION("Parent directory must exist")
@@ -137,8 +137,8 @@ TEST_CASE("FileUtils::validateOutputPath", "[FileUtils]")
 
         bool result = FileUtils::validateOutputPath(nonExistentDir, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
     }
 
     SECTION("Empty filename fails validation")
@@ -148,7 +148,7 @@ TEST_CASE("FileUtils::validateOutputPath", "[FileUtils]")
 
         bool result = FileUtils::validateOutputPath(emptyFile, errorMsg);
 
-        REQUIRE(result == false);
-        REQUIRE(errorMsg.isNotEmpty() == true);
+        CHECK(result == false);
+        CHECK(errorMsg.isNotEmpty() == true);
     }
 }

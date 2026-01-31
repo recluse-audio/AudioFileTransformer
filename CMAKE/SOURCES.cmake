@@ -1,4 +1,6 @@
 set(SOURCES
+    SOURCE/Audio/AudioFileProcessor.cpp
+    SOURCE/Audio/AudioFileProcessor.h
     SOURCE/PluginEditor.cpp
     SOURCE/PluginEditor.h
     SOURCE/PluginProcessor.cpp

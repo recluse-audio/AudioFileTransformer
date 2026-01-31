@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "Audio/AudioFileProcessor.h"
 
 class AudioFileTransformerEditor : public juce::AudioProcessorEditor
                             , public juce::Timer
@@ -20,12 +21,37 @@ private:
     AudioFileTransformerProcessor& mProcessor;
 
     // UI Components
-    std::unique_ptr<juce::Label> mVersionLabel;
-    std::unique_ptr<juce::Slider> mGainSlider;
-    std::unique_ptr<juce::Label> mGainLabel;
+    juce::Label inputLabel;
+    juce::Label inputPathLabel;
+    juce::TextButton chooseInputButton;
 
-    // Parameter attachments
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mGainAttachment;
+    juce::Label outputLabel;
+    juce::Label outputPathLabel;
+    juce::TextButton chooseOutputButton;
+
+    juce::TextButton processButton;
+    juce::Label statusLabel;
+
+    // File chooser
+    std::unique_ptr<juce::FileChooser> fileChooser;
+
+    // Audio processor
+    AudioFileProcessor audioProcessor;
+
+    // Processing state
+    std::atomic<bool> isProcessing { false };
+    std::atomic<float> currentProgress { 0.0f };
+    juce::File currentInputFile;
+    juce::File currentOutputFile;
+
+    // Button callbacks
+    void chooseInputFile();
+    void chooseOutputFile();
+    void processFile();
+
+    // Helper methods
+    void setDefaultInputFile();
+    void updateProcessButtonState();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerEditor)
