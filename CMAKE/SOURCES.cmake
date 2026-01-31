@@ -3,6 +3,8 @@ set(SOURCES
     SOURCE/PluginEditor.h
     SOURCE/PluginProcessor.cpp
     SOURCE/PluginProcessor.h
+    SOURCE/Util/FileUtils.cpp
+    SOURCE/Util/FileUtils.h
     SOURCE/Util/Juce_Header.h
     SOURCE/Util/Version.h
 )
