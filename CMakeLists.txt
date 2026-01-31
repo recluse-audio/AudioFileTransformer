@@ -56,6 +56,12 @@ juce_add_plugin(AudioFileTransformer
 include(CMAKE/SOURCES.cmake)
 target_sources(AudioFileTransformer PRIVATE ${SOURCES})
 
+# Include directories (for RD submodule to find Util/Juce_Header.h)
+target_include_directories(AudioFileTransformer PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
+    ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD/SOURCE
+)
+
 # Make version header generation a dependency
 add_dependencies(AudioFileTransformer update_version_header)
 
@@ -113,7 +119,13 @@ if(BUILD_TESTS OR TARGET Tests)
     include(CMAKE/SOURCES.cmake)
     target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES})
 
-    target_include_directories(Tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+    target_include_directories(Tests PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD
+        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD/SOURCE
+        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD/TESTS
+    )
 
     target_link_libraries(Tests PRIVATE
         Catch2::Catch2WithMain
@@ -123,6 +135,11 @@ if(BUILD_TESTS OR TARGET Tests)
     )
 
     target_compile_features(Tests PRIVATE cxx_std_20)
+
+    # MSVC: Add /FS flag to allow parallel compilation with shared PDB
+    if(MSVC)
+        target_compile_options(Tests PRIVATE /FS)
+    endif()
 
     # Define JUCE plugin macros for Tests target
     target_compile_definitions(Tests PRIVATE

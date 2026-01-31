@@ -1,7 +1,23 @@
 set(TEST_SOURCES
+    SUBMODULES/RD/TESTS/TEST_UTILS/BufferGenerator.h
+    SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.cpp
+    SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h
+    SUBMODULES/RD/TESTS/test_AudioFileHelpers.cpp
+    SUBMODULES/RD/TESTS/test_AudioFileProcessor.cpp
+    SUBMODULES/RD/TESTS/test_BufferFiller.cpp
+    SUBMODULES/RD/TESTS/test_BufferHelper.cpp
+    SUBMODULES/RD/TESTS/test_BufferMath.cpp
+    SUBMODULES/RD/TESTS/test_BufferRange.cpp
+    SUBMODULES/RD/TESTS/test_BufferWriter.cpp
+    SUBMODULES/RD/TESTS/test_CircularBuffer.cpp
+    SUBMODULES/RD/TESTS/test_GainProcessor.cpp
+    SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
+    SUBMODULES/RD/TESTS/test_Windowing.cpp
+    SUBMODULES/RD/TESTS/tests_Interpolator.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
     TESTS/test_AudioFileProcessor.cpp
     TESTS/test_FileUtils.cpp
     TESTS/test_Processor.cpp
+    TESTS/test_ProcessorDiagnostic.cpp
 )

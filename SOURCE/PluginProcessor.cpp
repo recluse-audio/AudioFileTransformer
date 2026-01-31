@@ -4,9 +4,8 @@
 //==============================================================================
 AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     : AudioProcessor(_getBusesProperties())
-    , apvts(*this, nullptr, "Parameters", _createParameterLayout())
 {
-    _initParameterListeners();
+    _setupProcessorGraph();
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()
@@ -80,13 +79,25 @@ void AudioFileTransformerProcessor::changeProgramName(int index, const juce::Str
 //==============================================================================
 void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    juce::ignoreUnused(sampleRate, samplesPerBlock);
-    // Initialize your audio processing components here
+    // Enable the graph's buses
+    processorGraph.enableAllBuses();
+
+    // Configure the graph's channel layout
+    juce::AudioProcessor::BusesLayout layout;
+    layout.inputBuses.add(juce::AudioChannelSet::stereo());
+    layout.outputBuses.add(juce::AudioChannelSet::stereo());
+    processorGraph.setBusesLayout(layout);
+
+    processorGraph.setPlayConfigDetails(getTotalNumInputChannels(),
+                                        getTotalNumOutputChannels(),
+                                        sampleRate,
+                                        samplesPerBlock);
+    processorGraph.prepareToPlay(sampleRate, samplesPerBlock);
 }
 
 void AudioFileTransformerProcessor::releaseResources()
 {
-    // Release any resources when playback stops
+    processorGraph.releaseResources();
 }
 
 bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -103,17 +114,10 @@ bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& la
 
 void AudioFileTransformerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ignoreUnused(midiMessages);
     juce::ScopedNoDenormals noDenormals;
 
-    auto totalNumInputChannels  = getTotalNumInputChannels();
-    auto totalNumOutputChannels = getTotalNumOutputChannels();
-
-    // Clear any output channels that don't contain input data
-    for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
-        buffer.clear(i, 0, buffer.getNumSamples());
-
-    // Your audio processing code here
+    // Process through the graph
+    processorGraph.processBlock(buffer, midiMessages);
 }
 
 //==============================================================================
@@ -130,48 +134,25 @@ juce::AudioProcessorEditor* AudioFileTransformerProcessor::createEditor()
 //==============================================================================
 void AudioFileTransformerProcessor::getStateInformation(juce::MemoryBlock& destData)
 {
-    // Save parameters to XML
-    auto state = apvts.copyState();
-    std::unique_ptr<juce::XmlElement> xml(state.createXml());
-    copyXmlToBinary(*xml, destData);
+    juce::ignoreUnused(destData);
+    // No state to save - parameters are in individual nodes
 }
 
 void AudioFileTransformerProcessor::setStateInformation(const void* data, int sizeInBytes)
 {
-    // Restore parameters from XML
-    std::unique_ptr<juce::XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
-
-    if (xmlState.get() != nullptr)
-        if (xmlState->hasTagName(apvts.state.getType()))
-            apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+    juce::ignoreUnused(data, sizeInBytes);
+    // No state to restore - parameters are in individual nodes
 }
 
-//==============================================================================
-void AudioFileTransformerProcessor::parameterChanged(const juce::String& parameterID, float newValue)
+GainProcessor* AudioFileTransformerProcessor::getGainNode()
 {
-    juce::ignoreUnused(parameterID, newValue);
-    // Handle parameter changes here
-}
-
-//==============================================================================
-juce::AudioProcessorValueTreeState::ParameterLayout AudioFileTransformerProcessor::_createParameterLayout()
-{
-    juce::AudioProcessorValueTreeState::ParameterLayout layout;
-
-    // Example parameter - add your own here
-    layout.add(std::make_unique<juce::AudioParameterFloat>(
-        "gain",           // Parameter ID
-        "Gain",           // Parameter name
-        juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f),
-        0.5f));           // Default value
-
-    return layout;
-}
-
-void AudioFileTransformerProcessor::_initParameterListeners()
-{
-    // Register parameter listeners
-    apvts.addParameterListener("gain", this);
+    // Iterate through all nodes to find the GainProcessor
+    for (auto* node : processorGraph.getNodes())
+    {
+        if (auto* gainProc = dynamic_cast<GainProcessor*>(node->getProcessor()))
+            return gainProc;
+    }
+    return nullptr;
 }
 
 juce::AudioProcessor::BusesProperties AudioFileTransformerProcessor::_getBusesProperties()
@@ -179,6 +160,62 @@ juce::AudioProcessor::BusesProperties AudioFileTransformerProcessor::_getBusesPr
     return BusesProperties()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
         .withOutput("Output", juce::AudioChannelSet::stereo(), true);
+}
+
+void AudioFileTransformerProcessor::_setupProcessorGraph()
+{
+    // Clear any existing nodes
+    processorGraph.clear();
+
+    // Initialize the graph with input and output buses
+    juce::AudioProcessor::BusesProperties graphBuses;
+    graphBuses = graphBuses
+        .withInput("Input", juce::AudioChannelSet::stereo(), true)
+        .withOutput("Output", juce::AudioChannelSet::stereo(), true);
+    processorGraph.setBusesLayout(juce::AudioProcessor::BusesLayout{
+        {juce::AudioChannelSet::stereo()},  // inputs
+        {juce::AudioChannelSet::stereo()}   // outputs
+    });
+
+    // Create audio input node
+    audioInputNodeID = processorGraph.addNode(
+        std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
+            juce::AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode
+        )
+    )->nodeID;
+
+    // Create audio output node
+    audioOutputNodeID = processorGraph.addNode(
+        std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
+            juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode
+        )
+    )->nodeID;
+
+    // Create and add GainProcessor node
+    auto gainProcessor = std::make_unique<GainProcessor>();
+    gainProcessor->setGain(0.01f);  // Set gain to 0.1f
+    gainNodeID = processorGraph.addNode(std::move(gainProcessor))->nodeID;
+
+    // Connect: Audio Input -> Gain -> Audio Output
+    // Connect left channel (channel 0)
+    processorGraph.addConnection({
+        { audioInputNodeID, 0 },
+        { gainNodeID, 0 }
+    });
+    processorGraph.addConnection({
+        { gainNodeID, 0 },
+        { audioOutputNodeID, 0 }
+    });
+
+    // Connect right channel (channel 1)
+    processorGraph.addConnection({
+        { audioInputNodeID, 1 },
+        { gainNodeID, 1 }
+    });
+    processorGraph.addConnection({
+        { gainNodeID, 1 },
+        { audioOutputNodeID, 1 }
+    });
 }
 
 //==============================================================================

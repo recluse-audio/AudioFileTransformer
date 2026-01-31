@@ -25,7 +25,15 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     outputLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(outputLabel);
 
-    outputPathLabel.setText("output.wav", juce::dontSendNotification);
+    // Set default output path
+    currentOutputFile = juce::File("C:\\REPOS\\PLUGIN_PROJECTS\\AudioFileTransformer\\RENDERED_AUDIO\\output.wav");
+
+    // Ensure RENDERED_AUDIO directory exists
+    auto outputDir = currentOutputFile.getParentDirectory();
+    if (!outputDir.exists())
+        outputDir.createDirectory();
+
+    outputPathLabel.setText(currentOutputFile.getFullPathName(), juce::dontSendNotification);
     outputPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
     outputPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     outputPathLabel.setJustificationType(juce::Justification::centredLeft);
@@ -208,23 +216,27 @@ void AudioFileTransformerEditor::processFile()
 
 void AudioFileTransformerEditor::setDefaultInputFile()
 {
-    // Try to find the default test file
-    auto testFile = juce::File::getCurrentWorkingDirectory()
-        .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
+    // Set default input file
+    auto defaultInputFile = juce::File("C:\\Users\\rdeve\\Test_Vox\\Somewhere_Mono_48k.wav");
 
-    if (!testFile.existsAsFile())
+    if (defaultInputFile.existsAsFile())
     {
-        // Try relative to executable
-        testFile = juce::File::getSpecialLocation(juce::File::currentExecutableFile)
-            .getParentDirectory()
-            .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
-    }
-
-    if (testFile.existsAsFile())
-    {
-        currentInputFile = testFile;
-        inputPathLabel.setText(testFile.getFullPathName(), juce::dontSendNotification);
+        currentInputFile = defaultInputFile;
+        inputPathLabel.setText(defaultInputFile.getFullPathName(), juce::dontSendNotification);
         updateProcessButtonState();
+    }
+    else
+    {
+        // Fallback: try the test file
+        auto testFile = juce::File::getCurrentWorkingDirectory()
+            .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
+
+        if (testFile.existsAsFile())
+        {
+            currentInputFile = testFile;
+            inputPathLabel.setText(testFile.getFullPathName(), juce::dontSendNotification);
+            updateProcessButtonState();
+        }
     }
 }
 

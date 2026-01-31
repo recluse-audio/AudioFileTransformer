@@ -1,9 +1,9 @@
 #pragma once
 
 #include "Util/Juce_Header.h"
+#include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 
 class AudioFileTransformerProcessor : public juce::AudioProcessor
-                               , public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     AudioFileTransformerProcessor();
@@ -41,18 +41,19 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     //==============================================================================
-    juce::AudioProcessorValueTreeState& getAPVTS() { return apvts; }
-
-    // Parameter listener callback
-    void parameterChanged(const juce::String& parameterID, float newValue) override;
+    // Access to processor graph nodes (for testing)
+    GainProcessor* getGainNode();
 
 private:
     //==============================================================================
-    juce::AudioProcessorValueTreeState apvts;
+    // Audio processor graph
+    juce::AudioProcessorGraph processorGraph;
+    juce::AudioProcessorGraph::NodeID audioInputNodeID;
+    juce::AudioProcessorGraph::NodeID audioOutputNodeID;
+    juce::AudioProcessorGraph::NodeID gainNodeID;
 
-    juce::AudioProcessorValueTreeState::ParameterLayout _createParameterLayout();
-    void _initParameterListeners();
     juce::AudioProcessor::BusesProperties _getBusesProperties();
+    void _setupProcessorGraph();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerProcessor)

@@ -74,7 +74,7 @@ def discover_source_folders():
 
 def discover_test_folders():
     """
-    Discover all TESTS directories in project and submodules.
+    Discover TESTS directories in the main project and RD submodule.
 
     Returns:
         List of directory paths
@@ -85,14 +85,10 @@ def discover_test_folders():
     if os.path.exists('TESTS'):
         folders.append('TESTS')
 
-    # Check for TESTS in any submodules
-    submodules_dir = Path('SUBMODULES')
-    if submodules_dir.exists():
-        for item in submodules_dir.iterdir():
-            if item.is_dir():
-                tests_dir = item / 'TESTS'
-                if tests_dir.exists():
-                    folders.append(str(tests_dir).replace('\\', '/'))
+    # RD submodule TESTS directory
+    rd_tests = Path('SUBMODULES/RD/TESTS')
+    if rd_tests.exists():
+        folders.append(str(rd_tests).replace('\\', '/'))
 
     return folders
 
