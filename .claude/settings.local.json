@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\SOURCE\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\CMAKE\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\TESTS\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\HELPER_SCRIPTS\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\TESTS\\\\TEST_UTILS\")",
+      "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\TESTS\\\\TEST_FILES\")",
+      "Bash(git -C \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\" log --oneline -10)"
+    ]
+  }
+}
