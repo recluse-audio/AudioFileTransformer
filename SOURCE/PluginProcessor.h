@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Util/Juce_Header.h"
+#include "FileProcessingManager.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
 
@@ -65,6 +66,23 @@ public:
     );
     juce::String getLastError() const;
 
+    // File paths for offline processing
+    void setInputFile(const juce::File& file);
+    void setOutputFile(const juce::File& file);
+    juce::File getInputFile() const { return mInputFile; }
+    juce::File getOutputFile() const { return mOutputFile; }
+
+    // Default file paths
+    static juce::File getDefaultInputFile();
+    static juce::File getDefaultOutputFile();
+
+    // Start/stop offline file processing
+    bool startFileProcessing(std::function<void(float)> progressCallback);
+    void stopFileProcessing();
+    bool isFileProcessing() const;
+    bool wasFileProcessingSuccessful() const;
+    juce::String getFileProcessingError() const;
+
 private:
     //==============================================================================
     // Audio processor graph
@@ -80,6 +98,9 @@ private:
     // File processing
     juce::AudioFormatManager formatManager;
     juce::String lastError;
+    FileProcessingManager mFileProcessingManager;
+    juce::File mInputFile;
+    juce::File mOutputFile;
 
     juce::AudioProcessor::BusesProperties _getBusesProperties();
     void _setupProcessorGraph();

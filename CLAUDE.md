@@ -59,16 +59,31 @@ The plugin uses `juce::AudioProcessorGraph` to create a modular processing chain
 
 - `AudioFileTransformerProcessor` (SOURCE/PluginProcessor.h) is the main plugin class
 - It contains an internal processor graph with nodes connected in series
-- Current graph: Audio Input → GainProcessor → Audio Output
-- The graph architecture allows easy addition of new processor nodes
+- Current processors: `GainProcessor` and `GranulatorProcessor` (from RD submodule)
+- Active processor can be swapped at runtime via `setActiveProcessor(ActiveProcessor processor)`
+- Graph architecture: Audio Input → Active Processor (Gain OR Granulator) → Audio Output
 
-**Key Design Pattern**: New audio processors should be added as nodes in the graph (see `_setupProcessorGraph()` in SOURCE/PluginProcessor.cpp:156).
+**Key Design Pattern**: New audio processors should be added as nodes in the graph (see `_setupProcessorGraph()` in SOURCE/PluginProcessor.cpp). Use `setActiveProcessor()` to switch between processors by reconnecting graph nodes.
+
+### File Processing Architecture
+
+The plugin supports offline file processing in addition to real-time audio:
+
+- `FileProcessingManager` (SOURCE/FileProcessingManager.h/cpp) manages threaded file processing
+- Creates separate processor instances for offline processing to avoid conflicts with real-time audio
+- Supports progress callbacks via `std::function<void(float)>`
+- Processing happens asynchronously in a dedicated thread
+- Access via `startFileProcessing()`, `stopFileProcessing()`, and status query methods
+
+**Thread Safety**: The FileProcessingManager uses a separate thread and processor instance to ensure offline file processing doesn't interfere with real-time audio in the plugin editor.
 
 ### RD Submodule Integration
 
 The `SUBMODULES/RD` directory contains reusable audio processing utilities:
 
-- **Audio Processors**: `GainProcessor` and other effect processors (in `PROCESSORS/` subdirectories)
+- **Audio Processors**:
+  - `GainProcessor` (PROCESSORS/GAIN/) - Simple gain adjustment
+  - `GranulatorProcessor` (PROCESSORS/GRAIN/) - Granular synthesis/time-stretching processor
 - **Buffer Utilities**: `BufferHelper`, `BufferMath`, `BufferRange`, `BufferWriter`, `BufferFiller`
 - **Audio I/O**: `AudioFileProcessor`, `AudioFileHelpers`
 - **DSP**: `CircularBuffer`, `Interpolator`, `Window`
@@ -79,19 +94,20 @@ These RD components are included in the main plugin's source list and directly a
 
 ```
 SOURCE/
-├── PluginProcessor.h/cpp      # Main plugin class, manages processor graph
-├── PluginEditor.h/cpp         # GUI editor
-├── Audio/                     # Audio file processing
-│   └── AudioFileProcessor.*   # Read/write audio files
+├── PluginProcessor.h/cpp        # Main plugin class, manages processor graph
+├── PluginEditor.h/cpp           # GUI editor
+├── FileProcessingManager.h/cpp  # Threaded offline file processing
 ├── Util/
-│   ├── Juce_Header.h         # Central JUCE includes
-│   ├── Version.h             # Auto-generated version macros
-│   └── FileUtils.*           # File path utilities
+│   ├── Juce_Header.h           # Central JUCE includes
+│   ├── Version.h               # Auto-generated version macros
+│   └── FileUtils.*             # File path utilities
 
-SUBMODULES/RD/SOURCE/          # Reusable audio utilities
-├── PROCESSORS/                # Audio effect processors
-├── Buffer*.h                  # Buffer manipulation utilities
-└── AudioFile*.*              # Audio file I/O helpers
+SUBMODULES/RD/SOURCE/            # Reusable audio utilities
+├── PROCESSORS/
+│   ├── GAIN/                   # GainProcessor
+│   └── GRAIN/                  # GranulatorProcessor, Granulator, Grain
+├── Buffer*.h                    # Buffer manipulation utilities
+└── AudioFile*.*                # Audio file I/O helpers
 ```
 
 ### Testing Architecture
@@ -118,11 +134,26 @@ To update version: edit `VERSION.txt` and rebuild.
 
 ### Adding a New Audio Processor
 
-1. Create processor class inheriting from `juce::AudioProcessor` (reference: `GainProcessor`)
-2. Add processor to graph in `AudioFileTransformerProcessor::_setupProcessorGraph()`
-3. Create connections: Input → YourProcessor → Next Node
-4. Add test accessor method (like `getGainNode()`) if testing is needed
-5. Write tests in `TESTS/test_Processor.cpp` to verify behavior
+1. Create processor class inheriting from `juce::AudioProcessor` (reference: `GainProcessor` or `GranulatorProcessor`)
+2. Add node creation in `AudioFileTransformerProcessor::_setupProcessorGraph()`
+3. Add processor to `ActiveProcessor` enum in SOURCE/PluginProcessor.h:51
+4. Update `setActiveProcessor()` logic to handle the new processor
+5. Add test accessor method (like `getGainNode()`) for testing
+6. Write tests in `TESTS/test_Processor.cpp` to verify behavior
+
+**Processor Switching Pattern**: The graph contains all processor nodes, but only one is connected at a time. `setActiveProcessor()` disconnects all processors and reconnects only the active one between input and output nodes.
+
+### Offline File Processing
+
+The plugin supports processing entire audio files offline:
+
+1. Set input/output files via `setInputFile()` and `setOutputFile()`
+2. Call `startFileProcessing(progressCallback)` to begin threaded processing
+3. Monitor progress via the callback (receives float 0.0-1.0)
+4. Check completion with `isFileProcessing()` and `wasFileProcessingSuccessful()`
+5. Retrieve errors with `getFileProcessingError()` if processing fails
+
+**Important**: FileProcessingManager creates a separate processor instance for offline work, so file processing and real-time audio don't interfere with each other.
 
 ### Processor Graph Testing Pattern
 

@@ -25,15 +25,10 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     outputLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(outputLabel);
 
-    // Set default output path
-    currentOutputFile = juce::File("C:\\REPOS\\PLUGIN_PROJECTS\\AudioFileTransformer\\RENDERED_AUDIO\\output.wav");
-
-    // Ensure RENDERED_AUDIO directory exists
-    auto outputDir = currentOutputFile.getParentDirectory();
-    if (!outputDir.exists())
-        outputDir.createDirectory();
-
-    outputPathLabel.setText(currentOutputFile.getFullPathName(), juce::dontSendNotification);
+    // Set default output path in processor
+    auto defaultOutputFile = AudioFileTransformerProcessor::getDefaultOutputFile();
+    mProcessor.setOutputFile(defaultOutputFile);
+    outputPathLabel.setText(defaultOutputFile.getFullPathName(), juce::dontSendNotification);
     outputPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
     outputPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     outputPathLabel.setJustificationType(juce::Justification::centredLeft);
@@ -67,38 +62,25 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     processorSelector.onChange = [this]() { processorSelectionChanged(); };
     addAndMakeVisible(processorSelector);
 
-    // Gain control (kept but not used)
-    gainLabel.setText("Gain (0.0 - 1.0):", juce::dontSendNotification);
-    gainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-    // addAndMakeVisible(gainLabel);  // Hidden since we're using granulator now
+    // Unified parameter control
+    parameterLabel.setText("Parameter:", juce::dontSendNotification);
+    parameterLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    addAndMakeVisible(parameterLabel);
 
-    gainTextEditor.setText("0.01");
-    gainTextEditor.setJustification(juce::Justification::centred);
-    gainTextEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::darkgrey);
-    gainTextEditor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
-    gainTextEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::grey);
-    gainTextEditor.onReturnKey = [this]() { updateGainFromTextEditor(); };
-    gainTextEditor.onFocusLost = [this]() { updateGainFromTextEditor(); };
-    // addAndMakeVisible(gainTextEditor);  // Hidden since we're using granulator now
+    parameterSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    parameterSlider.onValueChange = [this]() { updateParameterValueLabel(); };
+    addAndMakeVisible(parameterSlider);
 
-    // Shift ratio control
-    shiftRatioLabel.setText("Pitch Shift Ratio (0.5 = octave down, 1.0 = no shift, 1.5 = fifth up):", juce::dontSendNotification);
-    shiftRatioLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-    addAndMakeVisible(shiftRatioLabel);
+    parameterValueLabel.setText("1.00", juce::dontSendNotification);
+    parameterValueLabel.setFont(juce::Font(16.0f, juce::Font::bold));
+    parameterValueLabel.setJustificationType(juce::Justification::centred);
+    parameterValueLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    parameterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible(parameterValueLabel);
 
-    shiftRatioSlider.setRange(0.5, 1.5, 0.01);
-    shiftRatioSlider.setValue(1.0);  // Default: no shift
-    shiftRatioSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    shiftRatioSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
-    shiftRatioSlider.onValueChange = [this]() { updateShiftRatioValueLabel(); };
-    addAndMakeVisible(shiftRatioSlider);
-
-    shiftRatioValueLabel.setText("1.00", juce::dontSendNotification);
-    shiftRatioValueLabel.setFont(juce::Font(16.0f, juce::Font::bold));
-    shiftRatioValueLabel.setJustificationType(juce::Justification::centred);
-    shiftRatioValueLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black);
-    shiftRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    addAndMakeVisible(shiftRatioValueLabel);
+    // Configure parameter control for default processor (Granulator)
+    configureParameterControlForProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
 
     // Set window size
     setSize(600, 450);
@@ -113,13 +95,6 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
 AudioFileTransformerEditor::~AudioFileTransformerEditor()
 {
     stopTimer();
-
-    // Stop processing thread if running
-    if (processingThread != nullptr)
-    {
-        processingThread->stopThread(5000);
-        processingThread.reset();
-    }
 }
 
 void AudioFileTransformerEditor::paint(juce::Graphics& g)
@@ -167,17 +142,17 @@ void AudioFileTransformerEditor::resized()
 
     bounds.removeFromTop(20); // Spacing
 
-    // Shift ratio control
-    shiftRatioLabel.setBounds(bounds.removeFromTop(25));
-    auto shiftRatioRow = bounds.removeFromTop(80);
+    // Parameter control (unified for both processors)
+    parameterLabel.setBounds(bounds.removeFromTop(25));
+    auto parameterRow = bounds.removeFromTop(80);
 
     // Center the knob and value label
-    auto knobArea = shiftRatioRow.removeFromLeft(100);
-    shiftRatioSlider.setBounds(knobArea.removeFromTop(80));
+    auto knobArea = parameterRow.removeFromLeft(100);
+    parameterSlider.setBounds(knobArea.removeFromTop(80));
 
-    shiftRatioRow.removeFromLeft(20); // Spacing
-    auto valueLabelArea = shiftRatioRow.removeFromLeft(80);
-    shiftRatioValueLabel.setBounds(valueLabelArea.withTrimmedTop(25));
+    parameterRow.removeFromLeft(20); // Spacing
+    auto valueLabelArea = parameterRow.removeFromLeft(80);
+    parameterValueLabel.setBounds(valueLabelArea.withTrimmedTop(25));
 
     bounds.removeFromTop(20); // Spacing
 
@@ -193,33 +168,30 @@ void AudioFileTransformerEditor::resized()
 void AudioFileTransformerEditor::timerCallback()
 {
     // Update progress if processing
-    if (isProcessing.load())
+    if (mProcessor.isFileProcessing())
     {
         float progress = currentProgress.load();
         int percent = static_cast<int>(progress * 100.0f);
         statusLabel.setText("Processing... " + juce::String(percent) + "%", juce::dontSendNotification);
+    }
+    else if (currentProgress.load() > 0.0f)
+    {
+        // Processing just finished
+        bool success = mProcessor.wasFileProcessingSuccessful();
+        juce::String error = mProcessor.getFileProcessingError();
 
-        // Check if processing thread finished
-        if (processingThread != nullptr && !processingThread->isThreadRunning())
+        currentProgress.store(0.0f);
+        processButton.setEnabled(true);
+
+        if (success)
         {
-            bool success = processingThread->wasSuccessful();
-            juce::String error = processingThread->getError();
-
-            processingThread.reset();
-            isProcessing.store(false);
-            currentProgress.store(0.0f);
-            processButton.setEnabled(true);
-
-            if (success)
-            {
-                statusLabel.setText("Processing complete!", juce::dontSendNotification);
-                statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
-            }
-            else
-            {
-                statusLabel.setText("Error: " + error, juce::dontSendNotification);
-                statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
-            }
+            statusLabel.setText("Processing complete!", juce::dontSendNotification);
+            statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
+        }
+        else
+        {
+            statusLabel.setText("Error: " + error, juce::dontSendNotification);
+            statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
         }
     }
 }
@@ -239,7 +211,7 @@ void AudioFileTransformerEditor::chooseInputFile()
         auto file = fc.getResult();
         if (file.existsAsFile())
         {
-            currentInputFile = file;
+            mProcessor.setInputFile(file);
             inputPathLabel.setText(file.getFullPathName(), juce::dontSendNotification);
             updateProcessButtonState();
         }
@@ -262,7 +234,7 @@ void AudioFileTransformerEditor::chooseOutputFile()
         auto file = fc.getResult();
         if (file.getFullPathName().isNotEmpty())
         {
-            currentOutputFile = file;
+            mProcessor.setOutputFile(file);
             outputPathLabel.setText(file.getFullPathName(), juce::dontSendNotification);
             updateProcessButtonState();
         }
@@ -271,130 +243,111 @@ void AudioFileTransformerEditor::chooseOutputFile()
 
 void AudioFileTransformerEditor::processFile()
 {
-    if (isProcessing.load() || !currentInputFile.existsAsFile() || currentOutputFile.getFullPathName().isEmpty())
-        return;
-
-    isProcessing.store(true);
+    // Simply tell the processor that the process button was clicked
     processButton.setEnabled(false);
     statusLabel.setText("Processing... 0%", juce::dontSendNotification);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightblue);
 
-    // Get current processor settings
-    auto activeProc = mProcessor.getActiveProcessor();
-    float currentGain = gainTextEditor.getText().getFloatValue();
-    float currentShiftRatio = static_cast<float>(shiftRatioSlider.getValue());
-
-    // Create and start processing thread with a separate processor instance
-    processingThread = std::make_unique<ProcessingThread>(
-        activeProc,
-        currentGain,
-        currentShiftRatio,
-        currentInputFile,
-        currentOutputFile,
-        [this](float progress) {
-            currentProgress.store(progress);
-        }
-    );
-
-    processingThread->startThread();
+    mProcessor.startFileProcessing([this](float progress) {
+        currentProgress.store(progress);
+    });
 }
 
 void AudioFileTransformerEditor::setDefaultInputFile()
 {
-    // Set default input file
-    auto defaultInputFile = juce::File("C:\\Users\\rdeve\\Test_Vox\\Somewhere_Mono_48k.wav");
+    // Get default input file from processor
+    auto defaultInputFile = AudioFileTransformerProcessor::getDefaultInputFile();
 
     if (defaultInputFile.existsAsFile())
     {
-        currentInputFile = defaultInputFile;
+        mProcessor.setInputFile(defaultInputFile);
         inputPathLabel.setText(defaultInputFile.getFullPathName(), juce::dontSendNotification);
         updateProcessButtonState();
-    }
-    else
-    {
-        // Fallback: try the test file
-        auto testFile = juce::File::getCurrentWorkingDirectory()
-            .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
-
-        if (testFile.existsAsFile())
-        {
-            currentInputFile = testFile;
-            inputPathLabel.setText(testFile.getFullPathName(), juce::dontSendNotification);
-            updateProcessButtonState();
-        }
     }
 }
 
 void AudioFileTransformerEditor::updateProcessButtonState()
 {
-    bool canProcess = currentInputFile.existsAsFile()
-                   && currentOutputFile.getFullPathName().isNotEmpty()
-                   && !isProcessing.load();
+    bool canProcess = mProcessor.getInputFile().existsAsFile()
+                   && mProcessor.getOutputFile().getFullPathName().isNotEmpty()
+                   && !mProcessor.isFileProcessing();
     processButton.setEnabled(canProcess);
 }
 
-void AudioFileTransformerEditor::updateGainFromTextEditor()
+void AudioFileTransformerEditor::updateParameterValueLabel()
 {
-    auto text = gainTextEditor.getText();
-    float gainValue = text.getFloatValue();
+    float paramValue = static_cast<float>(parameterSlider.getValue());
+    auto activeProc = mProcessor.getActiveProcessor();
 
-    // Clamp to valid range (0.0 - 1.0)
-    gainValue = juce::jlimit(0.0f, 1.0f, gainValue);
-
-    // Update the text editor with the clamped value
-    gainTextEditor.setText(juce::String(gainValue, 3), juce::dontSendNotification);
-
-    // Update the gain processor
-    auto* gainNode = mProcessor.getGainNode();
-    if (gainNode != nullptr)
+    // Update label with appropriate precision
+    if (activeProc == AudioFileTransformerProcessor::ActiveProcessor::Gain)
     {
-        gainNode->setGain(gainValue);
+        parameterValueLabel.setText(juce::String(paramValue, 3), juce::dontSendNotification);
+
+        // Update gain processor in real-time
+        auto* gainNode = mProcessor.getGainNode();
+        if (gainNode != nullptr)
+            gainNode->setGain(paramValue);
+    }
+    else // Granulator
+    {
+        parameterValueLabel.setText(juce::String(paramValue, 2), juce::dontSendNotification);
+
+        // Update granulator processor in real-time
+        auto* granulatorNode = mProcessor.getGranulatorNode();
+        if (granulatorNode != nullptr)
+        {
+            auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
+            if (param != nullptr)
+            {
+                // Convert shift ratio (0.5 to 1.5) to normalized value (0.0 to 1.0)
+                float normalizedValue = (paramValue - 0.5f) / 1.0f;
+                param->setValueNotifyingHost(normalizedValue);
+            }
+        }
     }
 }
 
-void AudioFileTransformerEditor::updateShiftRatioValueLabel()
+void AudioFileTransformerEditor::configureParameterControlForProcessor(AudioFileTransformerProcessor::ActiveProcessor processor)
 {
-    float shiftRatio = static_cast<float>(shiftRatioSlider.getValue());
-    shiftRatioValueLabel.setText(juce::String(shiftRatio, 2), juce::dontSendNotification);
-
-    // Update the granulator processor in real-time
-    auto* granulatorNode = mProcessor.getGranulatorNode();
-    if (granulatorNode != nullptr)
+    if (processor == AudioFileTransformerProcessor::ActiveProcessor::Gain)
     {
-        auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
-        if (param != nullptr)
-        {
-            // Convert shift ratio (0.5 to 1.5) to normalized value (0.0 to 1.0)
-            float normalizedValue = (shiftRatio - 0.5f) / 1.0f;
-            param->setValueNotifyingHost(normalizedValue);
-        }
+        // Configure for gain control
+        parameterLabel.setText("Gain (0.0 = silent, 1.0 = full volume):", juce::dontSendNotification);
+        parameterSlider.setRange(0.0, 1.0, 0.001);
+        parameterSlider.setValue(0.5, juce::dontSendNotification);
+        parameterValueLabel.setText("0.500", juce::dontSendNotification);
+    }
+    else // Granulator
+    {
+        // Configure for pitch shift control
+        parameterLabel.setText("Pitch Shift Ratio (0.5 = octave down, 1.0 = no shift, 1.5 = fifth up):", juce::dontSendNotification);
+        parameterSlider.setRange(0.5, 1.5, 0.01);
+        parameterSlider.setValue(1.0, juce::dontSendNotification);
+        parameterValueLabel.setText("1.00", juce::dontSendNotification);
     }
 }
 
 void AudioFileTransformerEditor::processorSelectionChanged()
 {
     int selectedId = processorSelector.getSelectedId();
+    AudioFileTransformerProcessor::ActiveProcessor newProcessor;
 
     if (selectedId == 1) // Gain Processor
     {
-        mProcessor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
-
-        // Show gain controls, hide shift ratio controls
-        gainLabel.setVisible(true);
-        gainTextEditor.setVisible(true);
-        shiftRatioLabel.setVisible(false);
-        shiftRatioSlider.setVisible(false);
-        shiftRatioValueLabel.setVisible(false);
+        newProcessor = AudioFileTransformerProcessor::ActiveProcessor::Gain;
     }
-    else if (selectedId == 2) // Granulator Processor
+    else // Granulator Processor (selectedId == 2)
     {
-        mProcessor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
-
-        // Hide gain controls, show shift ratio controls
-        gainLabel.setVisible(false);
-        gainTextEditor.setVisible(false);
-        shiftRatioLabel.setVisible(true);
-        shiftRatioSlider.setVisible(true);
-        shiftRatioValueLabel.setVisible(true);
+        newProcessor = AudioFileTransformerProcessor::ActiveProcessor::Granulator;
     }
+
+    // Switch the active processor
+    mProcessor.setActiveProcessor(newProcessor);
+
+    // Reconfigure the parameter control for the new processor
+    configureParameterControlForProcessor(newProcessor);
+
+    // Update the parameter in the processor
+    updateParameterValueLabel();
 }

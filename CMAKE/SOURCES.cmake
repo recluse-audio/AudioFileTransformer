@@ -1,4 +1,6 @@
 set(SOURCES
+    SOURCE/FileProcessingManager.cpp
+    SOURCE/FileProcessingManager.h
     SOURCE/PluginEditor.cpp
     SOURCE/PluginEditor.h
     SOURCE/PluginProcessor.cpp
