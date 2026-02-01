@@ -56,8 +56,22 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
     addAndMakeVisible(statusLabel);
 
+    // Gain control
+    gainLabel.setText("Gain (0.0 - 1.0):", juce::dontSendNotification);
+    gainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    addAndMakeVisible(gainLabel);
+
+    gainTextEditor.setText("0.01");
+    gainTextEditor.setJustification(juce::Justification::centred);
+    gainTextEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::darkgrey);
+    gainTextEditor.setColour(juce::TextEditor::textColourId, juce::Colours::white);
+    gainTextEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::grey);
+    gainTextEditor.onReturnKey = [this]() { updateGainFromTextEditor(); };
+    gainTextEditor.onFocusLost = [this]() { updateGainFromTextEditor(); };
+    addAndMakeVisible(gainTextEditor);
+
     // Set window size
-    setSize(600, 300);
+    setSize(600, 350);
 
     // Set default input file
     setDefaultInputFile();
@@ -69,6 +83,13 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
 AudioFileTransformerEditor::~AudioFileTransformerEditor()
 {
     stopTimer();
+
+    // Stop processing thread if running
+    if (processingThread != nullptr)
+    {
+        processingThread->stopThread(5000);
+        processingThread.reset();
+    }
 }
 
 void AudioFileTransformerEditor::paint(juce::Graphics& g)
@@ -107,7 +128,14 @@ void AudioFileTransformerEditor::resized()
     outputRow.removeFromRight(10); // Spacing
     outputPathLabel.setBounds(outputRow);
 
-    bounds.removeFromTop(30); // Spacing
+    bounds.removeFromTop(20); // Spacing
+
+    // Gain control
+    gainLabel.setBounds(bounds.removeFromTop(25));
+    auto gainRow = bounds.removeFromTop(30);
+    gainTextEditor.setBounds(gainRow.removeFromLeft(100));
+
+    bounds.removeFromTop(20); // Spacing
 
     // Process button
     processButton.setBounds(bounds.removeFromTop(40).reduced(100, 0));
@@ -126,6 +154,29 @@ void AudioFileTransformerEditor::timerCallback()
         float progress = currentProgress.load();
         int percent = static_cast<int>(progress * 100.0f);
         statusLabel.setText("Processing... " + juce::String(percent) + "%", juce::dontSendNotification);
+
+        // Check if processing thread finished
+        if (processingThread != nullptr && !processingThread->isThreadRunning())
+        {
+            bool success = processingThread->wasSuccessful();
+            juce::String error = processingThread->getError();
+
+            processingThread.reset();
+            isProcessing.store(false);
+            currentProgress.store(0.0f);
+            processButton.setEnabled(true);
+
+            if (success)
+            {
+                statusLabel.setText("Processing complete!", juce::dontSendNotification);
+                statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
+            }
+            else
+            {
+                statusLabel.setText("Error: " + error, juce::dontSendNotification);
+                statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
+            }
+        }
     }
 }
 
@@ -184,34 +235,20 @@ void AudioFileTransformerEditor::processFile()
     statusLabel.setText("Processing... 0%", juce::dontSendNotification);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightblue);
 
-    // Process in background thread
-    std::thread([this]() {
-        bool success = audioProcessor.processFile(
-            currentInputFile,
-            currentOutputFile,
-            [this](float progress) {
-                currentProgress.store(progress);
-            }
-        );
+    // Get current gain value
+    float currentGain = gainTextEditor.getText().getFloatValue();
 
-        // Update UI on completion
-        juce::MessageManager::callAsync([this, success]() {
-            isProcessing.store(false);
-            currentProgress.store(0.0f);
-            processButton.setEnabled(true);
+    // Create and start processing thread with a separate processor instance
+    processingThread = std::make_unique<ProcessingThread>(
+        currentGain,
+        currentInputFile,
+        currentOutputFile,
+        [this](float progress) {
+            currentProgress.store(progress);
+        }
+    );
 
-            if (success)
-            {
-                statusLabel.setText("Processing complete!", juce::dontSendNotification);
-                statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
-            }
-            else
-            {
-                statusLabel.setText("Error: " + audioProcessor.getLastError(), juce::dontSendNotification);
-                statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
-            }
-        });
-    }).detach();
+    processingThread->startThread();
 }
 
 void AudioFileTransformerEditor::setDefaultInputFile()
@@ -246,4 +283,23 @@ void AudioFileTransformerEditor::updateProcessButtonState()
                    && currentOutputFile.getFullPathName().isNotEmpty()
                    && !isProcessing.load();
     processButton.setEnabled(canProcess);
+}
+
+void AudioFileTransformerEditor::updateGainFromTextEditor()
+{
+    auto text = gainTextEditor.getText();
+    float gainValue = text.getFloatValue();
+
+    // Clamp to valid range (0.0 - 1.0)
+    gainValue = juce::jlimit(0.0f, 1.0f, gainValue);
+
+    // Update the text editor with the clamped value
+    gainTextEditor.setText(juce::String(gainValue, 3), juce::dontSendNotification);
+
+    // Update the gain processor
+    auto* gainNode = mProcessor.getGainNode();
+    if (gainNode != nullptr)
+    {
+        gainNode->setGain(gainValue);
+    }
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include "PluginProcessor.h"
-#include "Audio/AudioFileProcessor.h"
 
 class AudioFileTransformerEditor : public juce::AudioProcessorEditor
                             , public juce::Timer
@@ -32,11 +31,57 @@ private:
     juce::TextButton processButton;
     juce::Label statusLabel;
 
+    // Gain control
+    juce::Label gainLabel;
+    juce::TextEditor gainTextEditor;
+
     // File chooser
     std::unique_ptr<juce::FileChooser> fileChooser;
 
-    // Audio processor
-    AudioFileProcessor audioProcessor;
+    // Processing thread
+    class ProcessingThread : public juce::Thread
+    {
+    public:
+        ProcessingThread(float gainValue,
+                        const juce::File& input,
+                        const juce::File& output,
+                        std::function<void(float)> callback)
+            : juce::Thread("FileProcessing")
+            , gain(gainValue)
+            , inputFile(input)
+            , outputFile(output)
+            , progressCallback(callback)
+        {}
+
+        void run() override
+        {
+            // Create a separate processor instance for offline processing
+            // This avoids conflicts with the real-time audio thread
+            AudioFileTransformerProcessor offlineProcessor;
+
+            // Set the gain value
+            auto* gainNode = offlineProcessor.getGainNode();
+            if (gainNode != nullptr)
+                gainNode->setGain(gain);
+
+            // Process the file
+            success = offlineProcessor.processFile(inputFile, outputFile, progressCallback);
+            error = offlineProcessor.getLastError();
+        }
+
+        bool wasSuccessful() const { return success; }
+        juce::String getError() const { return error; }
+
+    private:
+        float gain;
+        juce::File inputFile;
+        juce::File outputFile;
+        std::function<void(float)> progressCallback;
+        bool success = false;
+        juce::String error;
+    };
+
+    std::unique_ptr<ProcessingThread> processingThread;
 
     // Processing state
     std::atomic<bool> isProcessing { false };
@@ -52,6 +97,7 @@ private:
     // Helper methods
     void setDefaultInputFile();
     void updateProcessButtonState();
+    void updateGainFromTextEditor();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerEditor)

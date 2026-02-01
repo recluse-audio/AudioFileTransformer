@@ -44,6 +44,15 @@ public:
     // Access to processor graph nodes (for testing)
     GainProcessor* getGainNode();
 
+    //==============================================================================
+    // File processing methods
+    bool processFile(
+        const juce::File& inputFile,
+        const juce::File& outputFile,
+        std::function<void(float)> progressCallback = nullptr
+    );
+    juce::String getLastError() const;
+
 private:
     //==============================================================================
     // Audio processor graph
@@ -52,8 +61,28 @@ private:
     juce::AudioProcessorGraph::NodeID audioOutputNodeID;
     juce::AudioProcessorGraph::NodeID gainNodeID;
 
+    // File processing
+    juce::AudioFormatManager formatManager;
+    juce::String lastError;
+
     juce::AudioProcessor::BusesProperties _getBusesProperties();
     void _setupProcessorGraph();
+
+    // File I/O helpers
+    bool readAudioFile(
+        const juce::File& file,
+        juce::AudioBuffer<float>& buffer,
+        double& sampleRate,
+        unsigned int& numChannels,
+        unsigned int& bitsPerSample
+    );
+    bool writeAudioFile(
+        const juce::File& file,
+        const juce::AudioBuffer<float>& buffer,
+        double sampleRate,
+        unsigned int numChannels,
+        unsigned int bitsPerSample
+    );
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerProcessor)
