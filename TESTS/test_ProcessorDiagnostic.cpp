@@ -33,6 +33,9 @@ TEST_CASE("Diagnostic: Compare direct GainProcessor vs through graph", "[diagnos
     SECTION("GainProcessor through AudioFileTransformerProcessor graph")
     {
         AudioFileTransformerProcessor processor;
+
+        // Switch to gain processor for this test
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
         processor.prepareToPlay(sampleRate, samplesPerBlock);
 
         auto* gainNode = processor.getGainNode();
@@ -86,6 +89,9 @@ TEST_CASE("Diagnostic: Check graph preparation order", "[diagnostic]")
     {
         AudioFileTransformerProcessor processor;
 
+        // Switch to gain processor for this test
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
         auto* gainNode = processor.getGainNode();
         REQUIRE(gainNode != nullptr);
         gainNode->setGain(testGain);
@@ -108,6 +114,9 @@ TEST_CASE("Diagnostic: Check graph preparation order", "[diagnostic]")
     SECTION("Set gain AFTER prepareToPlay")
     {
         AudioFileTransformerProcessor processor;
+
+        // Switch to gain processor for this test
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
         processor.prepareToPlay(sampleRate, samplesPerBlock);
 
         auto* gainNode = processor.getGainNode();

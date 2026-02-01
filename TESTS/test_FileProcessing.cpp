@@ -115,6 +115,9 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
 
     SECTION("Process with gain of 0.5")
     {
+        // Switch to gain processor for this test
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
         auto* gainNode = processor.getGainNode();
         REQUIRE(gainNode != nullptr);
         gainNode->setGain(0.5f);

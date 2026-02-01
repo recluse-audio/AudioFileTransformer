@@ -56,10 +56,21 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightgreen);
     addAndMakeVisible(statusLabel);
 
-    // Gain control
+    // Processor selection
+    processorLabel.setText("Active Processor:", juce::dontSendNotification);
+    processorLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    addAndMakeVisible(processorLabel);
+
+    processorSelector.addItem("Gain Processor", 1);
+    processorSelector.addItem("Granulator Processor (Pitch Shift)", 2);
+    processorSelector.setSelectedId(2);  // Default to Granulator
+    processorSelector.onChange = [this]() { processorSelectionChanged(); };
+    addAndMakeVisible(processorSelector);
+
+    // Gain control (kept but not used)
     gainLabel.setText("Gain (0.0 - 1.0):", juce::dontSendNotification);
     gainLabel.setFont(juce::Font(14.0f, juce::Font::bold));
-    addAndMakeVisible(gainLabel);
+    // addAndMakeVisible(gainLabel);  // Hidden since we're using granulator now
 
     gainTextEditor.setText("0.01");
     gainTextEditor.setJustification(juce::Justification::centred);
@@ -68,10 +79,29 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     gainTextEditor.setColour(juce::TextEditor::outlineColourId, juce::Colours::grey);
     gainTextEditor.onReturnKey = [this]() { updateGainFromTextEditor(); };
     gainTextEditor.onFocusLost = [this]() { updateGainFromTextEditor(); };
-    addAndMakeVisible(gainTextEditor);
+    // addAndMakeVisible(gainTextEditor);  // Hidden since we're using granulator now
+
+    // Shift ratio control
+    shiftRatioLabel.setText("Pitch Shift Ratio (0.5 = octave down, 1.0 = no shift, 1.5 = fifth up):", juce::dontSendNotification);
+    shiftRatioLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    addAndMakeVisible(shiftRatioLabel);
+
+    shiftRatioSlider.setRange(0.5, 1.5, 0.01);
+    shiftRatioSlider.setValue(1.0);  // Default: no shift
+    shiftRatioSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    shiftRatioSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
+    shiftRatioSlider.onValueChange = [this]() { updateShiftRatioValueLabel(); };
+    addAndMakeVisible(shiftRatioSlider);
+
+    shiftRatioValueLabel.setText("1.00", juce::dontSendNotification);
+    shiftRatioValueLabel.setFont(juce::Font(16.0f, juce::Font::bold));
+    shiftRatioValueLabel.setJustificationType(juce::Justification::centred);
+    shiftRatioValueLabel.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+    shiftRatioValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    addAndMakeVisible(shiftRatioValueLabel);
 
     // Set window size
-    setSize(600, 350);
+    setSize(600, 450);
 
     // Set default input file
     setDefaultInputFile();
@@ -130,10 +160,24 @@ void AudioFileTransformerEditor::resized()
 
     bounds.removeFromTop(20); // Spacing
 
-    // Gain control
-    gainLabel.setBounds(bounds.removeFromTop(25));
-    auto gainRow = bounds.removeFromTop(30);
-    gainTextEditor.setBounds(gainRow.removeFromLeft(100));
+    // Processor selection
+    processorLabel.setBounds(bounds.removeFromTop(25));
+    auto processorRow = bounds.removeFromTop(30);
+    processorSelector.setBounds(processorRow.removeFromLeft(300));
+
+    bounds.removeFromTop(20); // Spacing
+
+    // Shift ratio control
+    shiftRatioLabel.setBounds(bounds.removeFromTop(25));
+    auto shiftRatioRow = bounds.removeFromTop(80);
+
+    // Center the knob and value label
+    auto knobArea = shiftRatioRow.removeFromLeft(100);
+    shiftRatioSlider.setBounds(knobArea.removeFromTop(80));
+
+    shiftRatioRow.removeFromLeft(20); // Spacing
+    auto valueLabelArea = shiftRatioRow.removeFromLeft(80);
+    shiftRatioValueLabel.setBounds(valueLabelArea.withTrimmedTop(25));
 
     bounds.removeFromTop(20); // Spacing
 
@@ -235,12 +279,16 @@ void AudioFileTransformerEditor::processFile()
     statusLabel.setText("Processing... 0%", juce::dontSendNotification);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightblue);
 
-    // Get current gain value
+    // Get current processor settings
+    auto activeProc = mProcessor.getActiveProcessor();
     float currentGain = gainTextEditor.getText().getFloatValue();
+    float currentShiftRatio = static_cast<float>(shiftRatioSlider.getValue());
 
     // Create and start processing thread with a separate processor instance
     processingThread = std::make_unique<ProcessingThread>(
+        activeProc,
         currentGain,
+        currentShiftRatio,
         currentInputFile,
         currentOutputFile,
         [this](float progress) {
@@ -301,5 +349,52 @@ void AudioFileTransformerEditor::updateGainFromTextEditor()
     if (gainNode != nullptr)
     {
         gainNode->setGain(gainValue);
+    }
+}
+
+void AudioFileTransformerEditor::updateShiftRatioValueLabel()
+{
+    float shiftRatio = static_cast<float>(shiftRatioSlider.getValue());
+    shiftRatioValueLabel.setText(juce::String(shiftRatio, 2), juce::dontSendNotification);
+
+    // Update the granulator processor in real-time
+    auto* granulatorNode = mProcessor.getGranulatorNode();
+    if (granulatorNode != nullptr)
+    {
+        auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
+        if (param != nullptr)
+        {
+            // Convert shift ratio (0.5 to 1.5) to normalized value (0.0 to 1.0)
+            float normalizedValue = (shiftRatio - 0.5f) / 1.0f;
+            param->setValueNotifyingHost(normalizedValue);
+        }
+    }
+}
+
+void AudioFileTransformerEditor::processorSelectionChanged()
+{
+    int selectedId = processorSelector.getSelectedId();
+
+    if (selectedId == 1) // Gain Processor
+    {
+        mProcessor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
+        // Show gain controls, hide shift ratio controls
+        gainLabel.setVisible(true);
+        gainTextEditor.setVisible(true);
+        shiftRatioLabel.setVisible(false);
+        shiftRatioSlider.setVisible(false);
+        shiftRatioValueLabel.setVisible(false);
+    }
+    else if (selectedId == 2) // Granulator Processor
+    {
+        mProcessor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+
+        // Hide gain controls, show shift ratio controls
+        gainLabel.setVisible(false);
+        gainTextEditor.setVisible(false);
+        shiftRatioLabel.setVisible(true);
+        shiftRatioSlider.setVisible(true);
+        shiftRatioValueLabel.setVisible(true);
     }
 }

@@ -2,6 +2,7 @@
 
 #include "Util/Juce_Header.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
+#include "../SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
 
 class AudioFileTransformerProcessor : public juce::AudioProcessor
 {
@@ -43,6 +44,17 @@ public:
     //==============================================================================
     // Access to processor graph nodes (for testing)
     GainProcessor* getGainNode();
+    GranulatorProcessor* getGranulatorNode();
+
+    // Processor swapping
+    enum class ActiveProcessor
+    {
+        Gain,
+        Granulator
+    };
+
+    void setActiveProcessor(ActiveProcessor processor);
+    ActiveProcessor getActiveProcessor() const { return mActiveProcessor; }
 
     //==============================================================================
     // File processing methods
@@ -60,6 +72,10 @@ private:
     juce::AudioProcessorGraph::NodeID audioInputNodeID;
     juce::AudioProcessorGraph::NodeID audioOutputNodeID;
     juce::AudioProcessorGraph::NodeID gainNodeID;
+    juce::AudioProcessorGraph::NodeID granulatorNodeID;
+
+    // Active processor tracking
+    ActiveProcessor mActiveProcessor = ActiveProcessor::Granulator;
 
     // File processing
     juce::AudioFormatManager formatManager;

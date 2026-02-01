@@ -159,6 +159,61 @@ GainProcessor* AudioFileTransformerProcessor::getGainNode()
     return nullptr;
 }
 
+GranulatorProcessor* AudioFileTransformerProcessor::getGranulatorNode()
+{
+    // Iterate through all nodes to find the GranulatorProcessor
+    for (auto* node : processorGraph.getNodes())
+    {
+        if (auto* granProc = dynamic_cast<GranulatorProcessor*>(node->getProcessor()))
+            return granProc;
+    }
+    return nullptr;
+}
+
+void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor)
+{
+    if (processor == mActiveProcessor)
+        return; // Already active
+
+    // Disconnect all connections between input/output and processors
+    processorGraph.disconnectNode(gainNodeID);
+    processorGraph.disconnectNode(granulatorNodeID);
+
+    // Determine which processor to connect
+    juce::AudioProcessorGraph::NodeID activeNodeID;
+    if (processor == ActiveProcessor::Gain)
+    {
+        activeNodeID = gainNodeID;
+        mActiveProcessor = ActiveProcessor::Gain;
+    }
+    else // ActiveProcessor::Granulator
+    {
+        activeNodeID = granulatorNodeID;
+        mActiveProcessor = ActiveProcessor::Granulator;
+    }
+
+    // Connect: Audio Input -> Active Processor -> Audio Output
+    // Connect left channel (channel 0)
+    processorGraph.addConnection({
+        { audioInputNodeID, 0 },
+        { activeNodeID, 0 }
+    });
+    processorGraph.addConnection({
+        { activeNodeID, 0 },
+        { audioOutputNodeID, 0 }
+    });
+
+    // Connect right channel (channel 1)
+    processorGraph.addConnection({
+        { audioInputNodeID, 1 },
+        { activeNodeID, 1 }
+    });
+    processorGraph.addConnection({
+        { activeNodeID, 1 },
+        { audioOutputNodeID, 1 }
+    });
+}
+
 //==============================================================================
 // File Processing Methods
 //==============================================================================
@@ -402,31 +457,17 @@ void AudioFileTransformerProcessor::_setupProcessorGraph()
         )
     )->nodeID;
 
-    // Create and add GainProcessor node
+    // Create GainProcessor node
     auto gainProcessor = std::make_unique<GainProcessor>();
-    gainProcessor->setGain(0.01f);  // Set gain to 0.1f
+    gainProcessor->setGain(0.01f);  // Set gain to 0.01f
     gainNodeID = processorGraph.addNode(std::move(gainProcessor))->nodeID;
 
-    // Connect: Audio Input -> Gain -> Audio Output
-    // Connect left channel (channel 0)
-    processorGraph.addConnection({
-        { audioInputNodeID, 0 },
-        { gainNodeID, 0 }
-    });
-    processorGraph.addConnection({
-        { gainNodeID, 0 },
-        { audioOutputNodeID, 0 }
-    });
+    // Create and add GranulatorProcessor node
+    auto granulatorProcessor = std::make_unique<GranulatorProcessor>();
+    granulatorNodeID = processorGraph.addNode(std::move(granulatorProcessor))->nodeID;
 
-    // Connect right channel (channel 1)
-    processorGraph.addConnection({
-        { audioInputNodeID, 1 },
-        { gainNodeID, 1 }
-    });
-    processorGraph.addConnection({
-        { gainNodeID, 1 },
-        { audioOutputNodeID, 1 }
-    });
+    // Set the active processor (connects the appropriate processor to input/output)
+    setActiveProcessor(mActiveProcessor);
 }
 
 //==============================================================================

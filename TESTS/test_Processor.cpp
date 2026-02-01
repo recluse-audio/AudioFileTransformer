@@ -41,13 +41,19 @@ TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransf
 
     SECTION("Processor graph is set up correctly")
     {
-        // Verify gain node exists and is accessible
+        // Verify both gain and granulator nodes exist
         auto* gainNode = processor.getGainNode();
         REQUIRE(gainNode != nullptr);
+
+        auto* granulatorNode = processor.getGranulatorNode();
+        REQUIRE(granulatorNode != nullptr);
 
         // Verify gain node has correct properties
         REQUIRE(gainNode->getName() == "Gain Processor");
         REQUIRE(gainNode->getTailLengthSeconds() == 0.0);
+
+        // Switch to gain processor for testing
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
 
         // Verify processor can access and modify gain
         gainNode->setGain(0.5f);
@@ -68,6 +74,8 @@ TEST_CASE("AudioFileTransformerProcessor gain processing", "[AudioFileTransforme
     const int samplesPerBlock = 512;
     const int numChannels = 2;
 
+    // Switch to gain processor for gain testing
+    processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
     processor.prepareToPlay(sampleRate, samplesPerBlock);
 
     SECTION("Gain of 0.0 produces exactly zero output")
@@ -210,3 +218,85 @@ TEST_CASE("AudioFileTransformerProcessor gain processing", "[AudioFileTransforme
 
     processor.releaseResources();
 }
+
+TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransformer][processor][swapping]")
+{
+    AudioFileTransformerProcessor processor;
+    const double sampleRate = 44100.0;
+    const int samplesPerBlock = 512;
+
+    SECTION("Default processor is Granulator")
+    {
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+    }
+
+    SECTION("Can switch to Gain processor")
+    {
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
+        // Verify gain processing works after switch
+        processor.prepareToPlay(sampleRate, samplesPerBlock);
+        auto* gainNode = processor.getGainNode();
+        REQUIRE(gainNode != nullptr);
+        gainNode->setGain(0.5f);
+
+        juce::AudioBuffer<float> buffer(2, samplesPerBlock);
+        BufferFiller::fillWithAllOnes(buffer);
+        juce::MidiBuffer midiBuffer;
+        processor.processBlock(buffer, midiBuffer);
+
+        // Verify gain was applied (1.0 * 0.5 = 0.5)
+        float sample = buffer.getSample(0, 0);
+        REQUIRE(std::abs(sample - 0.5f) < 1e-6f);
+
+        processor.releaseResources();
+    }
+
+    SECTION("Can switch to Granulator processor")
+    {
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+
+        // Verify granulator exists and is accessible
+        processor.prepareToPlay(sampleRate, samplesPerBlock);
+        auto* granulatorNode = processor.getGranulatorNode();
+        REQUIRE(granulatorNode != nullptr);
+
+        // Process a buffer (won't pitch shift without proper setup, but should not crash)
+        juce::AudioBuffer<float> buffer(2, samplesPerBlock);
+        BufferFiller::fillWithAllOnes(buffer);
+        juce::MidiBuffer midiBuffer;
+        REQUIRE_NOTHROW(processor.processBlock(buffer, midiBuffer));
+
+        processor.releaseResources();
+    }
+
+    SECTION("Can switch between processors multiple times")
+    {
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+        REQUIRE(processor.getActiveProcessor() == AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
+        // Verify gain still works after multiple swaps
+        processor.prepareToPlay(sampleRate, samplesPerBlock);
+        auto* gainNode = processor.getGainNode();
+        gainNode->setGain(0.25f);
+
+        juce::AudioBuffer<float> buffer(2, samplesPerBlock);
+        BufferFiller::fillWithAllOnes(buffer);
+        juce::MidiBuffer midiBuffer;
+        processor.processBlock(buffer, midiBuffer);
+
+        float sample = buffer.getSample(0, 0);
+        REQUIRE(std::abs(sample - 0.25f) < 1e-6f);
+
+        processor.releaseResources();
+    }
+}
+

@@ -40,7 +40,7 @@ TEST_CASE("FileUtils::validateInputFile", "[FileUtils]")
     {
         // Use the existing test file
         auto testFile = juce::File::getCurrentWorkingDirectory()
-            .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
+            .getChildFile("TESTS/TEST_FILES/Somewhere_Mono.wav");
 
         juce::String errorMsg;
         bool result = FileUtils::validateInputFile(testFile, errorMsg);

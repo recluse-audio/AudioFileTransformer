@@ -1,6 +1,4 @@
 set(SOURCES
-    SOURCE/Audio/AudioFileProcessor.cpp
-    SOURCE/Audio/AudioFileProcessor.h
     SOURCE/PluginEditor.cpp
     SOURCE/PluginEditor.h
     SOURCE/PluginProcessor.cpp
@@ -20,8 +18,16 @@ set(SOURCES
     SUBMODULES/RD/SOURCE/CircularBuffer.cpp
     SUBMODULES/RD/SOURCE/CircularBuffer.h
     SUBMODULES/RD/SOURCE/Interpolator.h
+    SUBMODULES/RD/SOURCE/PITCH/PitchDetector.cpp
+    SUBMODULES/RD/SOURCE/PITCH/PitchDetector.h
     SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.cpp
     SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/Grain.cpp
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/Grain.h
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/Granulator.cpp
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/Granulator.h
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.cpp
+    SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h
     SUBMODULES/RD/SOURCE/RelativeFilePath.h
     SUBMODULES/RD/SOURCE/Window.cpp
     SUBMODULES/RD/SOURCE/Window.h

@@ -16,9 +16,10 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/tests_Interpolator.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
-    TESTS/test_AudioFileProcessor.cpp
     TESTS/test_FileProcessing.cpp
     TESTS/test_FileUtils.cpp
+    TESTS/test_GranulatorProcessor.cpp
+    TESTS/test_PitchDetector.cpp
     TESTS/test_Processor.cpp
     TESTS/test_ProcessorDiagnostic.cpp
 )
