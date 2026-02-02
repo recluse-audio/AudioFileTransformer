@@ -361,13 +361,20 @@ juce::File AudioFileTransformerProcessor::getDefaultInputFile()
 
 juce::File AudioFileTransformerProcessor::getDefaultOutputFile()
 {
-    auto defaultOutputFile = juce::File("C:\\REPOS\\PLUGIN_PROJECTS\\AudioFileTransformer\\RENDERED_AUDIO\\output.wav");
+    // Use desktop location for cross-platform compatibility
+    auto desktopDir = juce::File::getSpecialLocation(juce::File::userDesktopDirectory);
+    auto outputDir = desktopDir.getChildFile("AudioFileTransformations");
 
-    // Ensure RENDERED_AUDIO directory exists
-    auto outputDir = defaultOutputFile.getParentDirectory();
+    // Ensure AudioFileTransformations directory exists on desktop
     if (!outputDir.exists())
         outputDir.createDirectory();
 
+    // Create unique filename with timestamp: output_2026-02-01_14-30-45.wav
+    auto currentTime = juce::Time::getCurrentTime();
+    auto timestamp = currentTime.formatted("%Y-%m-%d_%H-%M-%S");
+    auto filename = "output_" + timestamp + ".wav";
+
+    auto defaultOutputFile = outputDir.getChildFile(filename);
     return defaultOutputFile;
 }
 
