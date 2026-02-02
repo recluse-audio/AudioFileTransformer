@@ -45,3 +45,5 @@ DerivedData/
 .DS_Store
 Thumbs.db
 
+# Temp local default output 
+RENDERED_AUDIO/*
