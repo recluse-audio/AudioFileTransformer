@@ -10,25 +10,17 @@ class AudioFileTransformerProcessor;
 /**
  * @brief Manages offline file processing in a separate thread
  *
- * This class handles creating a processor instance for offline file processing,
- * managing the processing thread, and reporting progress/results.
+ * This class handles offline file processing with any AudioProcessor.
+ * The processor should be fully configured before calling startProcessing().
  */
 class FileProcessingManager
 {
 public:
-    enum class ActiveProcessor
-    {
-        Gain,
-        Granulator
-    };
-
     struct ProcessingConfig
     {
         juce::File inputFile;
         juce::File outputFile;
-        ActiveProcessor activeProcessor;
-        float gainValue;
-        float shiftRatio;
+        juce::AudioProcessor* processor;  // Processor should be configured before passing
         std::function<void(float)> progressCallback;
     };
 

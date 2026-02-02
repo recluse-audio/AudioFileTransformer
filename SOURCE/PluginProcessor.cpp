@@ -384,43 +384,12 @@ bool AudioFileTransformerProcessor::startFileProcessing(std::function<void(float
     if (!mInputFile.existsAsFile() || mOutputFile.getFullPathName().isEmpty())
         return false;
 
-    // Get current parameter values directly from the processor nodes
-    float gainValue = 0.5f;
-    float shiftRatio = 1.0f;
-
-    if (mActiveProcessor == ActiveProcessor::Gain)
-    {
-        auto* gainNode = getGainNode();
-        if (gainNode != nullptr)
-        {
-            auto* param = gainNode->getAPVTS().getParameter("gain");
-            if (param != nullptr)
-                gainValue = param->getValue();
-        }
-    }
-    else // Granulator
-    {
-        auto* granulatorNode = getGranulatorNode();
-        if (granulatorNode != nullptr)
-        {
-            auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
-            if (param != nullptr)
-            {
-                // Convert normalized value (0.0 to 1.0) to shift ratio (0.5 to 1.5)
-                shiftRatio = 0.5f + (param->getValue() * 1.0f);
-            }
-        }
-    }
-
     // Configure and start file processing
+    // The processor (this) is already configured with the active processor and parameters
     FileProcessingManager::ProcessingConfig config;
     config.inputFile = mInputFile;
     config.outputFile = mOutputFile;
-    config.activeProcessor = (mActiveProcessor == ActiveProcessor::Gain)
-                            ? FileProcessingManager::ActiveProcessor::Gain
-                            : FileProcessingManager::ActiveProcessor::Granulator;
-    config.gainValue = gainValue;
-    config.shiftRatio = shiftRatio;
+    config.processor = this;
     config.progressCallback = progressCallback;
 
     return mFileProcessingManager.startProcessing(config);

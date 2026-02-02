@@ -300,3 +300,75 @@ TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransfo
     }
 }
 
+TEST_CASE("AudioFileTransformerProcessor processBlock() with all-ones passthrough", "[AudioFileTransformer][processor]")
+{
+    /**
+     * Test both processors with all 1's input.
+     * Gain: Immediate passthrough with unity gain.
+     * Granulator: Dry passthrough after warmup when pitch is not detected.
+     */
+    constexpr double sampleRate = 48000.0;
+    constexpr int blockSize = 128;
+    constexpr int numChannels = 2;
+
+    AudioFileTransformerProcessor processor;
+    juce::MidiBuffer midiBuffer;
+
+    SECTION("Gain processor with unity gain")
+    {
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+        processor.prepareToPlay(sampleRate, blockSize);
+
+        auto* gainNode = processor.getGainNode();
+        REQUIRE(gainNode != nullptr);
+        gainNode->setGain(1.0f);  // Unity gain
+
+        juce::AudioBuffer<float> processBuffer(numChannels, blockSize);
+
+        // Process multiple blocks of all-ones
+        // Gain processor has no latency, should pass through immediately
+        for(int processBlockCall = 0; processBlockCall < 32; processBlockCall++)
+        {
+            BufferFiller::fillWithAllOnes(processBuffer);
+            processor.processBlock(processBuffer, midiBuffer);
+
+            // With unity gain, should always output 1.0 immediately
+            float expectedValue = 1.0f;
+
+            INFO("Gain - Process Block Call: " << processBlockCall);
+            CHECK(processBuffer.getSample(0, 0) == expectedValue);
+        }
+
+        processor.releaseResources();
+    }
+
+    SECTION("Granulator processor with dry passthrough")
+    {
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        processor.prepareToPlay(sampleRate, blockSize);
+
+        juce::AudioBuffer<float> processBuffer(numChannels, blockSize);
+
+        // Process multiple blocks of all-ones
+        // First few blocks will be 0 due to circular buffer warmup (lookahead delay)
+        // After warmup, should pass through as 1's
+        for(int processBlockCall = 0; processBlockCall < 32; processBlockCall++)
+        {
+            BufferFiller::fillWithAllOnes(processBuffer);
+            processor.processBlock(processBuffer, midiBuffer);
+
+            // We expect 1.0 to come out since that's what we put in
+            // But the first 4 block calls will be 0.0 due to reading delayed audio data
+            // from the circular buffer (lookahead delay = 512 samples, blockSize = 128, so 512/128 = 4 blocks)
+            float expectedValue = 1.0f;
+            if(processBlockCall <= 3)
+                expectedValue = 0.0f;
+
+            INFO("Granulator - Process Block Call: " << processBlockCall << ", Expected: " << expectedValue);
+            CHECK(processBuffer.getSample(0, 0) == expectedValue);
+        }
+
+        processor.releaseResources();
+    }
+}
+

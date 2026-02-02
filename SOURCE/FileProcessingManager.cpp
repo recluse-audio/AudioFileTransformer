@@ -78,42 +78,26 @@ FileProcessingManager::ProcessingThread::ProcessingThread(const ProcessingConfig
 
 void FileProcessingManager::ProcessingThread::run()
 {
-    // Create a separate processor instance for offline processing
-    // This provides complete thread isolation from any real-time audio processing
-    AudioFileTransformerProcessor offlineProcessor;
-
-    // Configure the processor to match the requested settings
-    auto processorType = (mConfig.activeProcessor == ActiveProcessor::Gain)
-                        ? AudioFileTransformerProcessor::ActiveProcessor::Gain
-                        : AudioFileTransformerProcessor::ActiveProcessor::Granulator;
-    offlineProcessor.setActiveProcessor(processorType);
-
-    // Set parameters based on active processor type
-    if (mConfig.activeProcessor == ActiveProcessor::Gain)
+    // Validate processor
+    if (mConfig.processor == nullptr)
     {
-        auto* gainNode = offlineProcessor.getGainNode();
-        if (gainNode != nullptr)
-        {
-            gainNode->setGain(mConfig.gainValue);
-        }
-    }
-    else // Granulator
-    {
-        auto* granulatorNode = offlineProcessor.getGranulatorNode();
-        if (granulatorNode != nullptr)
-        {
-            auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
-            if (param != nullptr)
-            {
-                // Convert shift ratio (0.5 to 1.5) to normalized value (0.0 to 1.0)
-                float normalizedValue = (mConfig.shiftRatio - 0.5f) / 1.0f;
-                param->setValueNotifyingHost(normalizedValue);
-            }
-        }
+        mError = "No processor provided";
+        mSuccess.store(false);
+        return;
     }
 
-    // Process the file
-    bool success = offlineProcessor.processFile(
+    // Use the processor directly - it should already be configured
+    // Cast to AudioFileTransformerProcessor to access processFile method
+    auto* mainProcessor = dynamic_cast<AudioFileTransformerProcessor*>(mConfig.processor);
+    if (mainProcessor == nullptr)
+    {
+        mError = "Processor must be an AudioFileTransformerProcessor";
+        mSuccess.store(false);
+        return;
+    }
+
+    // Process the file using the provided, pre-configured processor
+    bool success = mainProcessor->processFile(
         mConfig.inputFile,
         mConfig.outputFile,
         mConfig.progressCallback
@@ -121,5 +105,5 @@ void FileProcessingManager::ProcessingThread::run()
 
     // Store results
     mSuccess.store(success);
-    mError = offlineProcessor.getLastError();
+    mError = mainProcessor->getLastError();
 }
