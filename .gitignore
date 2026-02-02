@@ -47,3 +47,4 @@ Thumbs.db
 
 # Temp local default output 
 RENDERED_AUDIO/*
+TESTS/OUTPUT/*

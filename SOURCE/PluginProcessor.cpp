@@ -173,9 +173,7 @@ GranulatorProcessor* AudioFileTransformerProcessor::getGranulatorNode()
 
 void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor)
 {
-    if (processor == mActiveProcessor)
-        return; // Already active
-
+    // Always disconnect and reconnect to ensure graph is properly configured
     // Disconnect all connections between input/output and processors
     processorGraph.disconnectNode(gainNodeID);
     processorGraph.disconnectNode(granulatorNodeID);
@@ -219,10 +217,7 @@ void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor
 // File Processing Methods
 //==============================================================================
 
-bool AudioFileTransformerProcessor::processFile(
-    const juce::File& inputFile,
-    const juce::File& outputFile,
-    std::function<void(float)> progressCallback)
+bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, const juce::File& outputFile, std::function<void(float)> progressCallback)
 {
     lastError.clear();
 
@@ -415,12 +410,8 @@ juce::String AudioFileTransformerProcessor::getFileProcessingError() const
     return mFileProcessingManager.getError();
 }
 
-bool AudioFileTransformerProcessor::readAudioFile(
-    const juce::File& file,
-    juce::AudioBuffer<float>& buffer,
-    double& sampleRate,
-    unsigned int& numChannels,
-    unsigned int& bitsPerSample)
+bool AudioFileTransformerProcessor::readAudioFile(const juce::File& file, juce::AudioBuffer<float>& buffer, 
+                                                double& sampleRate,  unsigned int& numChannels, unsigned int& bitsPerSample)
 {
     // Create reader for the input file
     auto reader = std::unique_ptr<juce::AudioFormatReader>(
@@ -450,12 +441,8 @@ bool AudioFileTransformerProcessor::readAudioFile(
     return true;
 }
 
-bool AudioFileTransformerProcessor::writeAudioFile(
-    const juce::File& file,
-    const juce::AudioBuffer<float>& buffer,
-    double sampleRate,
-    unsigned int numChannels,
-    unsigned int bitsPerSample)
+bool AudioFileTransformerProcessor::writeAudioFile(const juce::File& file, const juce::AudioBuffer<float>& buffer,
+                                                    double sampleRate, unsigned int numChannels, unsigned int bitsPerSample)
 {
     // Delete existing file if present
     if (file.existsAsFile())

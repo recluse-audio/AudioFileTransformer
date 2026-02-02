@@ -1,9 +1,11 @@
 #include "TEST_UTILS/TestUtils.h"
+#include "../../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
 #include "../../SOURCE/PluginProcessor.h"
 #include "../../SUBMODULES/RD/SOURCE/BufferFiller.h"
 
 TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransformer][processor]")
 {
+    TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
 
     SECTION("Processor has correct properties")
@@ -69,6 +71,7 @@ TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransf
 
 TEST_CASE("AudioFileTransformerProcessor gain processing", "[AudioFileTransformer][processor][gain]")
 {
+    TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
     const double sampleRate = 44100.0;
     const int samplesPerBlock = 512;
@@ -221,6 +224,7 @@ TEST_CASE("AudioFileTransformerProcessor gain processing", "[AudioFileTransforme
 
 TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransformer][processor][swapping]")
 {
+    TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
     const double sampleRate = 44100.0;
     const int samplesPerBlock = 512;
@@ -300,8 +304,9 @@ TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransfo
     }
 }
 
-TEST_CASE("AudioFileTransformerProcessor processBlock() with all-ones passthrough", "[AudioFileTransformer][processor]")
+TEST_CASE("AudioFileTransformerProcessor processBlock() with all-ones passthrough", "[AudioFileTransformer][processor][passthrough]")
 {
+    TestUtils::SetupAndTeardown setup;
     /**
      * Test both processors with all 1's input.
      * Gain: Immediate passthrough with unity gain.
