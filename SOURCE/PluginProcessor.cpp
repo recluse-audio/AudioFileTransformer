@@ -294,6 +294,10 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         // Create a buffer for this block
         juce::AudioBuffer<float> blockBuffer(channels, 2, samplesToProcess);
 
+        // Copy input data into the block buffer
+        blockBuffer.copyFrom(0, 0, mInputBuffer, 0, startSample, samplesToProcess);
+        blockBuffer.copyFrom(1, 0, mInputBuffer, 1, startSample, samplesToProcess);
+
         // Process through the graph
         processBlock(blockBuffer, midiBuffer);
 

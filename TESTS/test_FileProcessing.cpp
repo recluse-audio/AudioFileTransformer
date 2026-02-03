@@ -172,4 +172,106 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
             REQUIRE(ratio < 0.6f);
         }
     }
+
+    SECTION("Compare input and processed buffers - Gain processor")
+    {
+        // Switch to gain processor
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
+        auto* gainNode = processor.getGainNode();
+        REQUIRE(gainNode != nullptr);
+        const float gainValue = 0.5f;
+        gainNode->setGain(gainValue);
+
+        auto testOutputFile = outputDir.getChildFile("Somewhere_Mono_Buffer_Test_Gain.wav");
+
+        bool success = processor.processFile(inputFile, testOutputFile);
+
+        if (!success)
+        {
+            INFO("Error: " << processor.getLastError().toStdString());
+        }
+
+        REQUIRE(success == true);
+
+        // Access the internal buffers
+        auto& inputBuffer = processor.getInputBuffer();
+        auto& processedBuffer = processor.getProcessedBuffer();
+
+        // Verify buffers are populated
+        REQUIRE(inputBuffer.getNumSamples() > 0);
+        REQUIRE(processedBuffer.getNumSamples() > 0);
+        REQUIRE(inputBuffer.getNumChannels() == 2); // Should be stereo
+        REQUIRE(processedBuffer.getNumChannels() == 2);
+
+        // Verify buffers have same size
+        REQUIRE(inputBuffer.getNumSamples() == processedBuffer.getNumSamples());
+
+        // Verify sample-by-sample that processed = input * gain
+        for (int ch = 0; ch < inputBuffer.getNumChannels(); ++ch)
+        {
+            for (int i = 0; i < inputBuffer.getNumSamples(); ++i)
+            {
+                float expectedValue = inputBuffer.getSample(ch, i) * gainValue;
+                float actualValue = processedBuffer.getSample(ch, i);
+
+                // Allow small floating point error
+                float difference = std::abs(expectedValue - actualValue);
+                if (difference > 0.0001f)
+                {
+                    INFO("Channel " << ch << ", Sample " << i << ": Expected " << expectedValue << ", Got " << actualValue);
+                    REQUIRE(difference <= 0.002f);
+                }
+            }
+        }
+    }
+
+    SECTION("Compare input and processed buffers - Granulator processor")
+    {
+        // Switch to granulator processor
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+
+        auto* granulatorNode = processor.getGranulatorNode();
+        REQUIRE(granulatorNode != nullptr);
+
+        auto testOutputFile = outputDir.getChildFile("Somewhere_Mono_Buffer_Test_Granulator.wav");
+
+        bool success = processor.processFile(inputFile, testOutputFile);
+
+        if (!success)
+        {
+            INFO("Error: " << processor.getLastError().toStdString());
+        }
+
+        REQUIRE(success == true);
+
+        // Access the internal buffers
+        auto& inputBuffer = processor.getInputBuffer();
+        auto& processedBuffer = processor.getProcessedBuffer();
+
+        // Verify buffers are populated
+        REQUIRE(inputBuffer.getNumSamples() > 0);
+        REQUIRE(processedBuffer.getNumSamples() > 0);
+        REQUIRE(inputBuffer.getNumChannels() == 2);
+        REQUIRE(processedBuffer.getNumChannels() == 2);
+
+        // Verify buffers have same size
+        REQUIRE(inputBuffer.getNumSamples() == processedBuffer.getNumSamples());
+
+        // Verify output is not silent
+        bool hasNonZeroSamples = false;
+        for (int ch = 0; ch < processedBuffer.getNumChannels(); ++ch)
+        {
+            for (int i = 0; i < processedBuffer.getNumSamples(); ++i)
+            {
+                if (std::abs(processedBuffer.getSample(ch, i)) > 0.0001f)
+                {
+                    hasNonZeroSamples = true;
+                    break;
+                }
+            }
+            if (hasNonZeroSamples) break;
+        }
+        REQUIRE(hasNonZeroSamples == true);
+    }
 }
