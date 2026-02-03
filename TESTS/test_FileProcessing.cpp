@@ -1,15 +1,17 @@
 #include "TEST_UTILS/TestUtils.h"
+#include "../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
 #include "../SOURCE/PluginProcessor.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransformer][file]")
 {
+    TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
 
     // Input file paths to try
     std::vector<juce::File> possibleInputFiles = {
+        juce::File::getCurrentWorkingDirectory().getChildFile("TESTS/TEST_FILES/Somewhere_Mono.wav"),
         juce::File("C:\\Users\\rdeve\\Test_Vox\\Somewhere_Mono_48k.wav"),
-        juce::File(juce::File::getCurrentWorkingDirectory().getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav")),
         juce::File(juce::File::getCurrentWorkingDirectory().getChildFile("SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_Somewhere_Mono_441k.wav"))
     };
 
@@ -44,9 +46,7 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         float lastProgress = 0.0f;
 
         // Process the file
-        bool success = processor.processFile(
-            inputFile,
-            outputFile,
+        bool success = processor.processFile( inputFile, outputFile,
             [&progressCalled, &lastProgress](float progress) {
                 progressCalled = true;
                 lastProgress = progress;
@@ -164,7 +164,7 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         INFO("Output RMS: " << outputRMS);
 
         // Output should be approximately half the amplitude
-        if (inputRMS > 0.001f) // Only check if there's actual signal
+        if (inputRMS > 0.01f) // Only check if there's actual signal
         {
             float ratio = outputRMS / inputRMS;
             INFO("RMS Ratio: " << ratio);

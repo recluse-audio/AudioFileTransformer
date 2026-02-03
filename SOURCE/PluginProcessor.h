@@ -83,6 +83,8 @@ public:
     bool wasFileProcessingSuccessful() const;
     juce::String getFileProcessingError() const;
 
+    juce::AudioBuffer<float>& getInputBuffer() { return mInputBuffer; }
+    juce::AudioBuffer<float>& getProcessedBuffer() { return mProcessedBuffer; }
 private:
     //==============================================================================
     // Audio processor graph
@@ -102,24 +104,16 @@ private:
     juce::File mInputFile;
     juce::File mOutputFile;
 
+    juce::AudioBuffer<float> mInputBuffer; // audio read from file, not processed yet
+    juce::AudioBuffer<float> mProcessedBuffer; // results of processing of mInputBuffer
     juce::AudioProcessor::BusesProperties _getBusesProperties();
     void _setupProcessorGraph();
 
     // File I/O helpers
-    bool readAudioFile(
-        const juce::File& file,
-        juce::AudioBuffer<float>& buffer,
-        double& sampleRate,
-        unsigned int& numChannels,
-        unsigned int& bitsPerSample
-    );
-    bool writeAudioFile(
-        const juce::File& file,
-        const juce::AudioBuffer<float>& buffer,
-        double sampleRate,
-        unsigned int numChannels,
-        unsigned int bitsPerSample
-    );
+    bool readAudioFile(const juce::File& file, juce::AudioBuffer<float>& buffer,
+                        double& sampleRate, unsigned int& numChannels, unsigned int& bitsPerSample);
+    bool writeAudioFile(const juce::File& file, const juce::AudioBuffer<float>& buffer,
+                        double sampleRate, unsigned int numChannels, unsigned int bitsPerSample);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerProcessor)

@@ -220,6 +220,8 @@ void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor
 bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, const juce::File& outputFile, std::function<void(float)> progressCallback)
 {
     lastError.clear();
+    mInputBuffer.clear();
+    mProcessedBuffer.clear();
 
     // Validate input file
     juce::String validationError;
@@ -241,12 +243,11 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         progressCallback(0.0f);
 
     // Read input file
-    juce::AudioBuffer<float> buffer;
     double sampleRate = 0.0;
     unsigned int numChannels = 0;
     unsigned int bitsPerSample = 0;
 
-    if (!readAudioFile(inputFile, buffer, sampleRate, numChannels, bitsPerSample))
+    if (!readAudioFile(inputFile, mInputBuffer, sampleRate, numChannels, bitsPerSample))
     {
         return false;
     }
@@ -256,16 +257,16 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         progressCallback(0.3f);
 
     // Ensure buffer has correct channel count (stereo)
-    if (buffer.getNumChannels() == 1)
+    if (mInputBuffer.getNumChannels() == 1)
     {
         // Convert mono to stereo by duplicating the channel
-        juce::AudioBuffer<float> stereoBuffer(2, buffer.getNumSamples());
-        stereoBuffer.copyFrom(0, 0, buffer, 0, 0, buffer.getNumSamples());
-        stereoBuffer.copyFrom(1, 0, buffer, 0, 0, buffer.getNumSamples());
-        buffer = stereoBuffer;
+        juce::AudioBuffer<float> stereoBuffer(2, mInputBuffer.getNumSamples());
+        stereoBuffer.copyFrom(0, 0, mInputBuffer, 0, 0, mInputBuffer.getNumSamples());
+        stereoBuffer.copyFrom(1, 0, mInputBuffer, 0, 0, mInputBuffer.getNumSamples());
+        mInputBuffer = stereoBuffer;
         numChannels = 2;
     }
-    else if (buffer.getNumChannels() != 2)
+    else if (mInputBuffer.getNumChannels() != 2)
     {
         lastError = "Only mono and stereo files are supported";
         return false;
@@ -276,16 +277,18 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
 
     // Process the audio buffer through the graph in chunks
     const int blockSize = 512;
-    const int totalSamples = buffer.getNumSamples();
+    const int totalSamples = mInputBuffer.getNumSamples();
     juce::MidiBuffer midiBuffer;
+
+    mProcessedBuffer.setSize(mInputBuffer.getNumChannels(), mInputBuffer.getNumSamples());
 
     for (int startSample = 0; startSample < totalSamples; startSample += blockSize)
     {
         int samplesToProcess = juce::jmin(blockSize, totalSamples - startSample);
 
         // Get write pointers for this block
-        float* leftChannel = buffer.getWritePointer(0, startSample);
-        float* rightChannel = buffer.getWritePointer(1, startSample);
+        float* leftChannel = mProcessedBuffer.getWritePointer(0, startSample);
+        float* rightChannel = mProcessedBuffer.getWritePointer(1, startSample);
         float* channels[2] = { leftChannel, rightChannel };
 
         // Create a buffer for this block
@@ -309,7 +312,7 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         progressCallback(0.7f);
 
     // Write output file
-    if (!writeAudioFile(outputFile, buffer, sampleRate, numChannels, bitsPerSample))
+    if (!writeAudioFile(outputFile, mProcessedBuffer, sampleRate, numChannels, bitsPerSample))
     {
         return false;
     }
@@ -414,8 +417,7 @@ bool AudioFileTransformerProcessor::readAudioFile(const juce::File& file, juce::
                                                 double& sampleRate,  unsigned int& numChannels, unsigned int& bitsPerSample)
 {
     // Create reader for the input file
-    auto reader = std::unique_ptr<juce::AudioFormatReader>(
-        formatManager.createReaderFor(file));
+    auto reader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(file));
 
     if (reader == nullptr)
     {
