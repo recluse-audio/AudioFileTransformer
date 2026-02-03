@@ -211,6 +211,20 @@ void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor
         { activeNodeID, 1 },
         { audioOutputNodeID, 1 }
     });
+
+    // Update the main processor's reported latency to match the active processor
+    if (processor == ActiveProcessor::Gain)
+    {
+        auto* gainNode = getGainNode();
+        if (gainNode)
+            setLatencySamples(gainNode->getLatencySamples());
+    }
+    else // ActiveProcessor::Granulator
+    {
+        auto* granulatorNode = getGranulatorNode();
+        if (granulatorNode)
+            setLatencySamples(granulatorNode->getLatencySamples());
+    }
 }
 
 //==============================================================================
@@ -275,16 +289,48 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
     // Prepare the processor graph for processing
     prepareToPlay(sampleRate, 512);
 
-    // Process the audio buffer through the graph in chunks
+    // Calculate output size: input + latency + tail
+    // Query the active processor directly since AudioProcessorGraph may not aggregate latency
     const int blockSize = 512;
-    const int totalSamples = mInputBuffer.getNumSamples();
+    const int inputSamples = mInputBuffer.getNumSamples();
+
+    int latencySamples = 0;
+    double tailLengthSeconds = 0.0;
+
+    if (mActiveProcessor == ActiveProcessor::Gain)
+    {
+        auto* gainNode = getGainNode();
+        if (gainNode)
+        {
+            latencySamples = gainNode->getLatencySamples();
+            tailLengthSeconds = gainNode->getTailLengthSeconds();
+        }
+    }
+    else if (mActiveProcessor == ActiveProcessor::Granulator)
+    {
+        auto* granulatorNode = getGranulatorNode();
+        if (granulatorNode)
+        {
+            latencySamples = granulatorNode->getLatencySamples();
+            tailLengthSeconds = granulatorNode->getTailLengthSeconds();
+        }
+    }
+
+    const int tailSamples = (tailLengthSeconds > 0) ? static_cast<int>(tailLengthSeconds * sampleRate) : 0;
+    const int totalOutputSamples = inputSamples + latencySamples + tailSamples;
+
+    // Update the main processor's reported latency (now that processors are prepared)
+    setLatencySamples(latencySamples);
+
     juce::MidiBuffer midiBuffer;
 
-    mProcessedBuffer.setSize(mInputBuffer.getNumChannels(), mInputBuffer.getNumSamples());
+    // Size output buffer to accommodate input + tail
+    mProcessedBuffer.setSize(mInputBuffer.getNumChannels(), totalOutputSamples);
 
-    for (int startSample = 0; startSample < totalSamples; startSample += blockSize)
+    // Process all samples (input + tail)
+    for (int startSample = 0; startSample < totalOutputSamples; startSample += blockSize)
     {
-        int samplesToProcess = juce::jmin(blockSize, totalSamples - startSample);
+        int samplesToProcess = juce::jmin(blockSize, totalOutputSamples - startSample);
 
         // Get write pointers for this block
         float* leftChannel = mProcessedBuffer.getWritePointer(0, startSample);
@@ -294,9 +340,25 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         // Create a buffer for this block
         juce::AudioBuffer<float> blockBuffer(channels, 2, samplesToProcess);
 
-        // Copy input data into the block buffer
-        blockBuffer.copyFrom(0, 0, mInputBuffer, 0, startSample, samplesToProcess);
-        blockBuffer.copyFrom(1, 0, mInputBuffer, 1, startSample, samplesToProcess);
+        // Copy input data if we're still within input range, otherwise fill with silence for tail
+        if (startSample < inputSamples)
+        {
+            int samplesFromInput = juce::jmin(samplesToProcess, inputSamples - startSample);
+            blockBuffer.copyFrom(0, 0, mInputBuffer, 0, startSample, samplesFromInput);
+            blockBuffer.copyFrom(1, 0, mInputBuffer, 1, startSample, samplesFromInput);
+
+            // Clear remaining samples if this block straddles the input/tail boundary
+            if (samplesFromInput < samplesToProcess)
+            {
+                blockBuffer.clear(0, samplesFromInput, samplesToProcess - samplesFromInput);
+                blockBuffer.clear(1, samplesFromInput, samplesToProcess - samplesFromInput);
+            }
+        }
+        else
+        {
+            // We're in the tail section - feed silence to capture processor tail
+            blockBuffer.clear();
+        }
 
         // Process through the graph
         processBlock(blockBuffer, midiBuffer);
@@ -304,7 +366,7 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         // Report progress during processing
         if (progressCallback)
         {
-            float progress = 0.3f + (0.4f * (float)startSample / (float)totalSamples);
+            float progress = 0.3f + (0.4f * (float)startSample / (float)totalOutputSamples);
             progressCallback(progress);
         }
     }

@@ -59,11 +59,7 @@ public:
 
     //==============================================================================
     // File processing methods
-    bool processFile(
-        const juce::File& inputFile,
-        const juce::File& outputFile,
-        std::function<void(float)> progressCallback = nullptr
-    );
+    bool processFile(const juce::File& inputFile,const juce::File& outputFile, std::function<void(float)> progressCallback = nullptr);
     juce::String getLastError() const;
 
     // File paths for offline processing

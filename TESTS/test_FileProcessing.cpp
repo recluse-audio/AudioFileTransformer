@@ -34,6 +34,10 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
 
     auto outputFile = outputDir.getChildFile("Somewhere_Mono_Processed.wav");
 
+
+    // Switch to gain processor for this test
+    processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+
     SECTION("Process mono audio file through processor graph")
     {
         // Set gain to unity (1.0) for no transformation
@@ -69,7 +73,6 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
     {
         // Set gain to unity
         auto* gainNode = processor.getGainNode();
-        REQUIRE(gainNode != nullptr);
         gainNode->setGain(1.0f);
 
         // Process the file
@@ -115,21 +118,14 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
 
     SECTION("Process with gain of 0.5")
     {
-        // Switch to gain processor for this test
-        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
-
         auto* gainNode = processor.getGainNode();
-        REQUIRE(gainNode != nullptr);
         gainNode->setGain(0.5f);
 
         auto testOutputFile = outputDir.getChildFile("Somewhere_Mono_Processed_Half_Gain.wav");
 
         bool success = processor.processFile(inputFile, testOutputFile);
-
         if (!success)
-        {
             INFO("Error: " << processor.getLastError().toStdString());
-        }
 
         REQUIRE(success == true);
         REQUIRE(testOutputFile.existsAsFile());
@@ -138,11 +134,8 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         juce::AudioFormatManager formatManager;
         formatManager.registerBasicFormats();
 
-        auto inputReader = std::unique_ptr<juce::AudioFormatReader>(
-            formatManager.createReaderFor(inputFile));
-        auto outputReader = std::unique_ptr<juce::AudioFormatReader>(
-            formatManager.createReaderFor(testOutputFile));
-
+        auto inputReader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(inputFile));
+        auto outputReader = std::unique_ptr<juce::AudioFormatReader>(formatManager.createReaderFor(testOutputFile));
         REQUIRE(inputReader != nullptr);
         REQUIRE(outputReader != nullptr);
 
@@ -150,7 +143,6 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         const int samplesToCheck = 1024;
         juce::AudioBuffer<float> inputBuffer(inputReader->numChannels, samplesToCheck);
         juce::AudioBuffer<float> outputBuffer(outputReader->numChannels, samplesToCheck);
-
         inputReader->read(&inputBuffer, 0, samplesToCheck, 1000, true, true);
         outputReader->read(&outputBuffer, 0, samplesToCheck, 1000, true, true);
 
@@ -175,22 +167,15 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
 
     SECTION("Compare input and processed buffers - Gain processor")
     {
-        // Switch to gain processor
-        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
-
         auto* gainNode = processor.getGainNode();
-        REQUIRE(gainNode != nullptr);
         const float gainValue = 0.5f;
         gainNode->setGain(gainValue);
 
         auto testOutputFile = outputDir.getChildFile("Somewhere_Mono_Buffer_Test_Gain.wav");
 
         bool success = processor.processFile(inputFile, testOutputFile);
-
         if (!success)
-        {
             INFO("Error: " << processor.getLastError().toStdString());
-        }
 
         REQUIRE(success == true);
 
@@ -230,19 +215,14 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
     {
         // Switch to granulator processor
         processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
-
         auto* granulatorNode = processor.getGranulatorNode();
         REQUIRE(granulatorNode != nullptr);
 
         auto testOutputFile = outputDir.getChildFile("Somewhere_Mono_Buffer_Test_Granulator.wav");
 
         bool success = processor.processFile(inputFile, testOutputFile);
-
         if (!success)
-        {
             INFO("Error: " << processor.getLastError().toStdString());
-        }
-
         REQUIRE(success == true);
 
         // Access the internal buffers
@@ -255,8 +235,9 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         REQUIRE(inputBuffer.getNumChannels() == 2);
         REQUIRE(processedBuffer.getNumChannels() == 2);
 
+        int latency = processor.getLatencySamples();
         // Verify buffers have same size
-        REQUIRE(inputBuffer.getNumSamples() == processedBuffer.getNumSamples());
+        REQUIRE(inputBuffer.getNumSamples() + latency == processedBuffer.getNumSamples());
 
         // Verify output is not silent
         bool hasNonZeroSamples = false;
@@ -273,5 +254,39 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
             if (hasNonZeroSamples) break;
         }
         REQUIRE(hasNonZeroSamples == true);
+    }
+
+    SECTION("Output length differs between Gain and Granulator processors due to latency")
+    {
+        auto* gainNode = processor.getGainNode();
+        gainNode->setGain(1.0f);
+
+        auto gainOutputFile = outputDir.getChildFile("Latency_Test_Gain.wav");
+        bool success = processor.processFile(inputFile, gainOutputFile);
+        REQUIRE(success == true);
+
+        // Get processed buffer length for Gain
+        auto& gainProcessedBuffer = processor.getProcessedBuffer();
+        int gainOutputLength = gainProcessedBuffer.getNumSamples();
+
+        // Process with Granulator processor
+        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        auto* granulatorNode = processor.getGranulatorNode();
+        REQUIRE(granulatorNode != nullptr);
+
+        auto granulatorOutputFile = outputDir.getChildFile("Latency_Test_Granulator.wav");
+        success = processor.processFile(inputFile, granulatorOutputFile);
+        REQUIRE(success == true);
+
+        // Get processed buffer length for Granulator
+        auto& granulatorProcessedBuffer = processor.getProcessedBuffer();
+        int granulatorOutputLength = granulatorProcessedBuffer.getNumSamples();
+
+        // Verify Granulator output is 512 samples longer (latency from minLookaheadSize)
+        INFO("Gain output length: " << gainOutputLength);
+        INFO("Granulator output length: " << granulatorOutputLength);
+        INFO("Difference: " << (granulatorOutputLength - gainOutputLength));
+
+        REQUIRE(granulatorOutputLength == gainOutputLength + 512);
     }
 }
