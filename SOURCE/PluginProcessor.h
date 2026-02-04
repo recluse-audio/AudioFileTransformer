@@ -2,6 +2,7 @@
 
 #include "Util/Juce_Header.h"
 #include "FileProcessingManager.h"
+#include "BufferProcessingManager.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
 
@@ -47,15 +48,9 @@ public:
     GainProcessor* getGainNode();
     GranulatorProcessor* getGranulatorNode();
 
-    // Processor swapping
-    enum class ActiveProcessor
-    {
-        Gain,
-        Granulator
-    };
-
+    // Processor swapping (delegated to BufferProcessingManager)
     void setActiveProcessor(ActiveProcessor processor);
-    ActiveProcessor getActiveProcessor() const { return mActiveProcessor; }
+    ActiveProcessor getActiveProcessor() const;
 
     //==============================================================================
     // File processing methods
@@ -83,15 +78,8 @@ public:
     juce::AudioBuffer<float>& getProcessedBuffer() { return mProcessedBuffer; }
 private:
     //==============================================================================
-    // Audio processor graph
-    juce::AudioProcessorGraph processorGraph;
-    juce::AudioProcessorGraph::NodeID audioInputNodeID;
-    juce::AudioProcessorGraph::NodeID audioOutputNodeID;
-    juce::AudioProcessorGraph::NodeID gainNodeID;
-    juce::AudioProcessorGraph::NodeID granulatorNodeID;
-
-    // Active processor tracking
-    ActiveProcessor mActiveProcessor = ActiveProcessor::Granulator;
+    // Buffer processing manager (owns processor graph)
+    BufferProcessingManager mBufferProcessingManager;
 
     // File processing
     juce::AudioFormatManager formatManager;
@@ -102,8 +90,12 @@ private:
 
     juce::AudioBuffer<float> mInputBuffer; // audio read from file, not processed yet
     juce::AudioBuffer<float> mProcessedBuffer; // results of processing of mInputBuffer
+
+    // TEMPORARY: Direct processor instance for debugging
+    // std::unique_ptr<GranulatorProcessor> mTestGranulator;
+    std::unique_ptr<GainProcessor> mTestGain;
+
     juce::AudioProcessor::BusesProperties _getBusesProperties();
-    void _setupProcessorGraph();
 
     // File I/O helpers
     bool readAudioFile(const juce::File& file, juce::AudioBuffer<float>& buffer,

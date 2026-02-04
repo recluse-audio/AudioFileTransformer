@@ -80,7 +80,7 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     addAndMakeVisible(parameterValueLabel);
 
     // Configure parameter control for default processor (Granulator)
-    configureParameterControlForProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+    configureParameterControlForProcessor(ActiveProcessor::Granulator);
 
     // Set window size
     setSize(600, 450);
@@ -280,7 +280,7 @@ void AudioFileTransformerEditor::updateParameterValueLabel()
     auto activeProc = mProcessor.getActiveProcessor();
 
     // Update label with appropriate precision
-    if (activeProc == AudioFileTransformerProcessor::ActiveProcessor::Gain)
+    if (activeProc == ActiveProcessor::Gain)
     {
         parameterValueLabel.setText(juce::String(paramValue, 3), juce::dontSendNotification);
 
@@ -308,9 +308,9 @@ void AudioFileTransformerEditor::updateParameterValueLabel()
     }
 }
 
-void AudioFileTransformerEditor::configureParameterControlForProcessor(AudioFileTransformerProcessor::ActiveProcessor processor)
+void AudioFileTransformerEditor::configureParameterControlForProcessor(ActiveProcessor processor)
 {
-    if (processor == AudioFileTransformerProcessor::ActiveProcessor::Gain)
+    if (processor == ActiveProcessor::Gain)
     {
         // Configure for gain control
         parameterLabel.setText("Gain (0.0 = silent, 1.0 = full volume):", juce::dontSendNotification);
@@ -331,15 +331,15 @@ void AudioFileTransformerEditor::configureParameterControlForProcessor(AudioFile
 void AudioFileTransformerEditor::processorSelectionChanged()
 {
     int selectedId = processorSelector.getSelectedId();
-    AudioFileTransformerProcessor::ActiveProcessor newProcessor;
+    ActiveProcessor newProcessor;
 
     if (selectedId == 1) // Gain Processor
     {
-        newProcessor = AudioFileTransformerProcessor::ActiveProcessor::Gain;
+        newProcessor = ActiveProcessor::Gain;
     }
     else // Granulator Processor (selectedId == 2)
     {
-        newProcessor = AudioFileTransformerProcessor::ActiveProcessor::Granulator;
+        newProcessor = ActiveProcessor::Granulator;
     }
 
     // Switch the active processor

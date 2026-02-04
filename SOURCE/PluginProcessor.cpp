@@ -9,7 +9,9 @@ AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     // Register audio formats
     formatManager.registerBasicFormats();
 
-    _setupProcessorGraph();
+    // TEMPORARY: Create direct processor instance for debugging
+    // mTestGranulator = std::make_unique<GranulatorProcessor>();
+    mTestGain = std::make_unique<GainProcessor>();
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()
@@ -84,34 +86,57 @@ void AudioFileTransformerProcessor::changeProgramName(int index, const juce::Str
 //==============================================================================
 void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // Enable the graph's buses
-    processorGraph.enableAllBuses();
+    // TEMPORARY: Prepare direct processor instance
+    // if (mTestGranulator)
+    //     mTestGranulator->prepareToPlay(sampleRate, samplesPerBlock);
+    if (mTestGain)
+    {
+        mTestGain->prepareToPlay(sampleRate, samplesPerBlock);
+        mTestGain->setGain(2.0f); // 2x boost - should be LOUD and obvious
+    }
 
-    // Configure the graph's channel layout
-    juce::AudioProcessor::BusesLayout layout;
-    layout.inputBuses.add(juce::AudioChannelSet::stereo());
-    layout.outputBuses.add(juce::AudioChannelSet::stereo());
-    processorGraph.setBusesLayout(layout);
-
-    processorGraph.setPlayConfigDetails(getTotalNumInputChannels(),
-                                        getTotalNumOutputChannels(),
-                                        sampleRate,
-                                        samplesPerBlock);
-    processorGraph.prepareToPlay(sampleRate, samplesPerBlock);
+    // Update the main processor's reported latency after child processors are prepared
+    if (getActiveProcessor() == ActiveProcessor::Gain)
+    {
+        auto* gainNode = getGainNode();
+        if (gainNode)
+            setLatencySamples(gainNode->getLatencySamples());
+    }
+    else // ActiveProcessor::Granulator
+    {
+        auto* granulatorNode = getGranulatorNode();
+        if (granulatorNode)
+            setLatencySamples(granulatorNode->getLatencySamples());
+    }
 }
 
 void AudioFileTransformerProcessor::releaseResources()
 {
-    processorGraph.releaseResources();
+    // TEMPORARY: Release direct processor instance
+    // if (mTestGranulator)
+    //     mTestGranulator->releaseResources();
+    if (mTestGain)
+        mTestGain->releaseResources();
 }
 
 bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
 {
-    // Only support stereo for now
-    if (layouts.getMainOutputChannelSet() != juce::AudioChannelSet::stereo())
+    // Support mono or stereo
+    auto inputChannels = layouts.getMainInputChannelSet();
+    auto outputChannels = layouts.getMainOutputChannelSet();
+
+    // Input can be mono or stereo
+    if (inputChannels != juce::AudioChannelSet::mono() &&
+        inputChannels != juce::AudioChannelSet::stereo())
         return false;
 
-    if (layouts.getMainInputChannelSet() != juce::AudioChannelSet::stereo())
+    // Output can be mono or stereo
+    if (outputChannels != juce::AudioChannelSet::mono() &&
+        outputChannels != juce::AudioChannelSet::stereo())
+        return false;
+
+    // Input and output must match
+    if (inputChannels != outputChannels)
         return false;
 
     return true;
@@ -120,9 +145,11 @@ bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& la
 void AudioFileTransformerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
+    juce::ignoreUnused(midiMessages);
 
-    // Process through the graph
-    processorGraph.processBlock(buffer, midiMessages);
+    // This plugin is designed for offline file processing only.
+    // Real-time audio processing is not supported - clear buffer to output silence.
+    buffer.clear();
 }
 
 //==============================================================================
@@ -151,80 +178,22 @@ void AudioFileTransformerProcessor::setStateInformation(const void* data, int si
 
 GainProcessor* AudioFileTransformerProcessor::getGainNode()
 {
-    // Iterate through all nodes to find the GainProcessor
-    for (auto* node : processorGraph.getNodes())
-    {
-        if (auto* gainProc = dynamic_cast<GainProcessor*>(node->getProcessor()))
-            return gainProc;
-    }
-    return nullptr;
+    return mBufferProcessingManager.getGainNode();
 }
 
 GranulatorProcessor* AudioFileTransformerProcessor::getGranulatorNode()
 {
-    // Iterate through all nodes to find the GranulatorProcessor
-    for (auto* node : processorGraph.getNodes())
-    {
-        if (auto* granProc = dynamic_cast<GranulatorProcessor*>(node->getProcessor()))
-            return granProc;
-    }
-    return nullptr;
+    return mBufferProcessingManager.getGranulatorNode();
 }
 
 void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor)
 {
-    // Always disconnect and reconnect to ensure graph is properly configured
-    // Disconnect all connections between input/output and processors
-    processorGraph.disconnectNode(gainNodeID);
-    processorGraph.disconnectNode(granulatorNodeID);
+    mBufferProcessingManager.setActiveProcessor(processor);
+}
 
-    // Determine which processor to connect
-    juce::AudioProcessorGraph::NodeID activeNodeID;
-    if (processor == ActiveProcessor::Gain)
-    {
-        activeNodeID = gainNodeID;
-        mActiveProcessor = ActiveProcessor::Gain;
-    }
-    else // ActiveProcessor::Granulator
-    {
-        activeNodeID = granulatorNodeID;
-        mActiveProcessor = ActiveProcessor::Granulator;
-    }
-
-    // Connect: Audio Input -> Active Processor -> Audio Output
-    // Connect left channel (channel 0)
-    processorGraph.addConnection({
-        { audioInputNodeID, 0 },
-        { activeNodeID, 0 }
-    });
-    processorGraph.addConnection({
-        { activeNodeID, 0 },
-        { audioOutputNodeID, 0 }
-    });
-
-    // Connect right channel (channel 1)
-    processorGraph.addConnection({
-        { audioInputNodeID, 1 },
-        { activeNodeID, 1 }
-    });
-    processorGraph.addConnection({
-        { activeNodeID, 1 },
-        { audioOutputNodeID, 1 }
-    });
-
-    // Update the main processor's reported latency to match the active processor
-    if (processor == ActiveProcessor::Gain)
-    {
-        auto* gainNode = getGainNode();
-        if (gainNode)
-            setLatencySamples(gainNode->getLatencySamples());
-    }
-    else // ActiveProcessor::Granulator
-    {
-        auto* granulatorNode = getGranulatorNode();
-        if (granulatorNode)
-            setLatencySamples(granulatorNode->getLatencySamples());
-    }
+ActiveProcessor AudioFileTransformerProcessor::getActiveProcessor() const
+{
+    return mBufferProcessingManager.getActiveProcessor();
 }
 
 //==============================================================================
@@ -252,9 +221,6 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         return false;
     }
 
-    // Report initial progress
-    if (progressCallback)
-        progressCallback(0.0f);
 
     // Read input file
     double sampleRate = 0.0;
@@ -266,9 +232,6 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         return false;
     }
 
-    // Report progress after read
-    if (progressCallback)
-        progressCallback(0.3f);
 
     // Ensure buffer has correct channel count (stereo)
     if (mInputBuffer.getNumChannels() == 1)
@@ -286,18 +249,14 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         return false;
     }
 
-    // Prepare the processor graph for processing
-    prepareToPlay(sampleRate, 512);
-
     // Calculate output size: input + latency + tail
-    // Query the active processor directly since AudioProcessorGraph may not aggregate latency
     const int blockSize = 512;
     const int inputSamples = mInputBuffer.getNumSamples();
 
     int latencySamples = 0;
     double tailLengthSeconds = 0.0;
 
-    if (mActiveProcessor == ActiveProcessor::Gain)
+    if (getActiveProcessor() == ActiveProcessor::Gain)
     {
         auto* gainNode = getGainNode();
         if (gainNode)
@@ -306,7 +265,7 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
             tailLengthSeconds = gainNode->getTailLengthSeconds();
         }
     }
-    else if (mActiveProcessor == ActiveProcessor::Granulator)
+    else if (getActiveProcessor() == ActiveProcessor::Granulator)
     {
         auto* granulatorNode = getGranulatorNode();
         if (granulatorNode)
@@ -319,73 +278,21 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
     const int tailSamples = (tailLengthSeconds > 0) ? static_cast<int>(tailLengthSeconds * sampleRate) : 0;
     const int totalOutputSamples = inputSamples + latencySamples + tailSamples;
 
-    // Update the main processor's reported latency (now that processors are prepared)
-    setLatencySamples(latencySamples);
-
-    juce::MidiBuffer midiBuffer;
-
-    // Size output buffer to accommodate input + tail
+    // Size output buffer to accommodate input + latency + tail
     mProcessedBuffer.setSize(mInputBuffer.getNumChannels(), totalOutputSamples);
+    mProcessedBuffer.clear();
 
-    // Process all samples (input + tail)
-    for (int startSample = 0; startSample < totalOutputSamples; startSample += blockSize)
+    // Process buffers using BufferProcessingManager (non-realtime, off audio thread)
+    if (!mBufferProcessingManager.processBuffers(mInputBuffer, mProcessedBuffer, sampleRate, blockSize, progressCallback))
     {
-        int samplesToProcess = juce::jmin(blockSize, totalOutputSamples - startSample);
-
-        // Get write pointers for this block
-        float* leftChannel = mProcessedBuffer.getWritePointer(0, startSample);
-        float* rightChannel = mProcessedBuffer.getWritePointer(1, startSample);
-        float* channels[2] = { leftChannel, rightChannel };
-
-        // Create a buffer for this block
-        juce::AudioBuffer<float> blockBuffer(channels, 2, samplesToProcess);
-
-        // Copy input data if we're still within input range, otherwise fill with silence for tail
-        if (startSample < inputSamples)
-        {
-            int samplesFromInput = juce::jmin(samplesToProcess, inputSamples - startSample);
-            blockBuffer.copyFrom(0, 0, mInputBuffer, 0, startSample, samplesFromInput);
-            blockBuffer.copyFrom(1, 0, mInputBuffer, 1, startSample, samplesFromInput);
-
-            // Clear remaining samples if this block straddles the input/tail boundary
-            if (samplesFromInput < samplesToProcess)
-            {
-                blockBuffer.clear(0, samplesFromInput, samplesToProcess - samplesFromInput);
-                blockBuffer.clear(1, samplesFromInput, samplesToProcess - samplesFromInput);
-            }
-        }
-        else
-        {
-            // We're in the tail section - feed silence to capture processor tail
-            blockBuffer.clear();
-        }
-
-        // Process through the graph
-        processBlock(blockBuffer, midiBuffer);
-
-        // Report progress during processing
-        if (progressCallback)
-        {
-            float progress = 0.3f + (0.4f * (float)startSample / (float)totalOutputSamples);
-            progressCallback(progress);
-        }
-    }
-
-    releaseResources();
-
-    // Report progress after processing
-    if (progressCallback)
-        progressCallback(0.7f);
-
-    // Write output file
-    if (!writeAudioFile(outputFile, mProcessedBuffer, sampleRate, numChannels, bitsPerSample))
-    {
+        lastError = "Buffer processing failed: " + mBufferProcessingManager.getLastError();
         return false;
     }
 
-    // Report completion
-    if (progressCallback)
-        progressCallback(1.0f);
+    if (!writeAudioFile(outputFile, mInputBuffer, sampleRate, numChannels, bitsPerSample))
+    {
+        return false;
+    }
 
     return true;
 }
@@ -566,48 +473,6 @@ juce::AudioProcessor::BusesProperties AudioFileTransformerProcessor::_getBusesPr
     return BusesProperties()
         .withInput("Input", juce::AudioChannelSet::stereo(), true)
         .withOutput("Output", juce::AudioChannelSet::stereo(), true);
-}
-
-void AudioFileTransformerProcessor::_setupProcessorGraph()
-{
-    // Clear any existing nodes
-    processorGraph.clear();
-
-    // Initialize the graph with input and output buses
-    juce::AudioProcessor::BusesProperties graphBuses;
-    graphBuses = graphBuses
-        .withInput("Input", juce::AudioChannelSet::stereo(), true)
-        .withOutput("Output", juce::AudioChannelSet::stereo(), true);
-    processorGraph.setBusesLayout(juce::AudioProcessor::BusesLayout{
-        {juce::AudioChannelSet::stereo()},  // inputs
-        {juce::AudioChannelSet::stereo()}   // outputs
-    });
-
-    // Create audio input node
-    audioInputNodeID = processorGraph.addNode(
-        std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
-            juce::AudioProcessorGraph::AudioGraphIOProcessor::audioInputNode
-        )
-    )->nodeID;
-
-    // Create audio output node
-    audioOutputNodeID = processorGraph.addNode(
-        std::make_unique<juce::AudioProcessorGraph::AudioGraphIOProcessor>(
-            juce::AudioProcessorGraph::AudioGraphIOProcessor::audioOutputNode
-        )
-    )->nodeID;
-
-    // Create GainProcessor node
-    auto gainProcessor = std::make_unique<GainProcessor>();
-    gainProcessor->setGain(0.01f);  // Set gain to 0.01f
-    gainNodeID = processorGraph.addNode(std::move(gainProcessor))->nodeID;
-
-    // Create and add GranulatorProcessor node
-    auto granulatorProcessor = std::make_unique<GranulatorProcessor>();
-    granulatorNodeID = processorGraph.addNode(std::move(granulatorProcessor))->nodeID;
-
-    // Set the active processor (connects the appropriate processor to input/output)
-    setActiveProcessor(mActiveProcessor);
 }
 
 //==============================================================================

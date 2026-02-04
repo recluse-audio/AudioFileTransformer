@@ -36,7 +36,7 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
 
 
     // Switch to gain processor for this test
-    processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Gain);
+    processor.setActiveProcessor(ActiveProcessor::Gain);
 
     SECTION("Process mono audio file through processor graph")
     {
@@ -214,7 +214,7 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
     SECTION("Compare input and processed buffers - Granulator processor")
     {
         // Switch to granulator processor
-        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        processor.setActiveProcessor(ActiveProcessor::Granulator);
         auto* granulatorNode = processor.getGranulatorNode();
         REQUIRE(granulatorNode != nullptr);
 
@@ -270,7 +270,7 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         int gainOutputLength = gainProcessedBuffer.getNumSamples();
 
         // Process with Granulator processor
-        processor.setActiveProcessor(AudioFileTransformerProcessor::ActiveProcessor::Granulator);
+        processor.setActiveProcessor(ActiveProcessor::Granulator);
         auto* granulatorNode = processor.getGranulatorNode();
         REQUIRE(granulatorNode != nullptr);
 

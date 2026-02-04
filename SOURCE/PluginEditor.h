@@ -56,7 +56,7 @@ private:
     void setDefaultInputFile();
     void updateProcessButtonState();
     void updateParameterValueLabel();
-    void configureParameterControlForProcessor(AudioFileTransformerProcessor::ActiveProcessor processor);
+    void configureParameterControlForProcessor(ActiveProcessor processor);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerEditor)
