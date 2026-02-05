@@ -10,7 +10,8 @@
       "Bash(dir \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\\\\TESTS\\\\TEST_FILES\")",
       "Bash(git -C \"C:\\\\REPOS\\\\PLUGIN_PROJECTS\\\\AudioFileTransformer\" log --oneline -10)",
       "Bash(test:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(./Tests.exe:*)"
     ]
   }
 }
