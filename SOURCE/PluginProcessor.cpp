@@ -289,7 +289,7 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
         return false;
     }
 
-    if (!writeAudioFile(outputFile, mInputBuffer, sampleRate, numChannels, bitsPerSample))
+    if (!writeAudioFile(outputFile, mProcessedBuffer, sampleRate, numChannels, bitsPerSample))
     {
         return false;
     }
