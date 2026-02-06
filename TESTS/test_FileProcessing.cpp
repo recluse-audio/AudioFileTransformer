@@ -282,11 +282,11 @@ TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransforme
         auto& granulatorProcessedBuffer = processor.getProcessedBuffer();
         int granulatorOutputLength = granulatorProcessedBuffer.getNumSamples();
 
-        // Verify Granulator output is 512 samples longer (latency from minLookaheadSize)
+        // Verify Granulator output is 1024 samples longer (latency from minLookaheadSize)
         INFO("Gain output length: " << gainOutputLength);
         INFO("Granulator output length: " << granulatorOutputLength);
         INFO("Difference: " << (granulatorOutputLength - gainOutputLength));
 
-        REQUIRE(granulatorOutputLength == gainOutputLength + 512);
+        REQUIRE(granulatorOutputLength == gainOutputLength + 1024);
     }
 }

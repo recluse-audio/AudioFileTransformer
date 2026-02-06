@@ -297,7 +297,7 @@ void AudioFileTransformerEditor::updateParameterValueLabel()
         auto* granulatorNode = mProcessor.getGranulatorNode();
         if (granulatorNode != nullptr)
         {
-            auto* param = granulatorNode->getAPVTS().getParameter("shiftRatio");
+            auto* param = granulatorNode->getAPVTS().getParameter("shift ratio");
             if (param != nullptr)
             {
                 // Convert shift ratio (0.5 to 1.5) to normalized value (0.0 to 1.0)
