@@ -1,0 +1,11 @@
+This, and the other docs in this GOLDEN folder are the output of the python td-psola implementation I am replicating in c++
+
+TD-PSOLA Grain Analysis Summary
+==================================================
+
+Pitch Shift Ratio (f_ratio): 1.5
+Signal Length: 793800 samples
+Number of Analysis Grains: 4965
+Number of Synthesis Grains: 7447
+
+

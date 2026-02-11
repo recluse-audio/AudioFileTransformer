@@ -34,13 +34,8 @@ public:
 
     //==============================================================================
     // Buffer processing
-    bool processBuffers(
-        const juce::AudioBuffer<float>& inputBuffer,
-        juce::AudioBuffer<float>& outputBuffer,
-        double sampleRate,
-        int blockSize = 512,
-        std::function<void(float)> progressCallback = nullptr
-    );
+    bool processBuffers(const juce::AudioBuffer<float>& inputBuffer, juce::AudioBuffer<float>& outputBuffer,
+        double sampleRate, int blockSize = 512, std::function<void(float)> progressCallback = nullptr );
 
     // Single block processing (for real-time audio)
     void processSingleBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer);

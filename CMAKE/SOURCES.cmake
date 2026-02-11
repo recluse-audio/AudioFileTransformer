@@ -7,6 +7,9 @@ set(SOURCES
     SOURCE/PluginEditor.h
     SOURCE/PluginProcessor.cpp
     SOURCE/PluginProcessor.h
+    SOURCE/TD-PSOLA/GrainExport.h
+    SOURCE/TD-PSOLA/TD_PSOLA.cpp
+    SOURCE/TD-PSOLA/TD_PSOLA.h
     SOURCE/Util/FileUtils.cpp
     SOURCE/Util/FileUtils.h
     SOURCE/Util/Juce_Header.h
