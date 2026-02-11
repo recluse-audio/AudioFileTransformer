@@ -295,8 +295,7 @@ TEST_CASE("PitchDetector - Detect Pitch on Sine Waves", "[TD_PSOLA][PitchDetecto
         pitchDetector.setThreshold(0.1);
         float detectedPeriod2 = pitchDetector.process(buffer);
         REQUIRE(detectedPeriod2 > 0.0f);
-        REQUIRE_THAT(detectedPeriod2,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
+        REQUIRE_THAT(detectedPeriod2, Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
     }
 }
 

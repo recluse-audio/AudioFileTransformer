@@ -165,10 +165,8 @@ std::vector<int> TDPSOLA::detectPitchPeriods(const juce::AudioBuffer<float>& cha
     return computePeriodsPerSequence(channelData, sequenceLength, minPeriod, maxPeriod);
 }
 
-std::vector<int> TDPSOLA::computePeriodsPerSequence(const juce::AudioBuffer<float>& signal,
-                                                     int sequenceLength,
-                                                     int minPeriod,
-                                                     int maxPeriod)
+std::vector<int> TDPSOLA::computePeriodsPerSequence(const juce::AudioBuffer<float>& signal, int sequenceLength, 
+                                                    int minPeriod, int maxPeriod)
 {
     std::vector<int> periods;
     int numSamples = signal.getNumSamples();
