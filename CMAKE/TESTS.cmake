@@ -16,14 +16,16 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/test_PitchDetection_Arpeggios.cpp
     SUBMODULES/RD/TESTS/test_PitchDetection_Somewhere.cpp
     SUBMODULES/RD/TESTS/test_PitchDetector.cpp
+    SUBMODULES/RD/TESTS/test_PitchManager.cpp
+    SUBMODULES/RD/TESTS/test_PitchMarker.cpp
     SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
+    SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp
     SUBMODULES/RD/TESTS/test_Windowing.cpp
     SUBMODULES/RD/TESTS/tests_Interpolator.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
     TESTS/test_FileProcessing.cpp
     TESTS/test_FileUtils.cpp
-    TESTS/test_GranulatorProcessor.cpp
     TESTS/test_Processor.cpp
     TESTS/test_ProcessorDiagnostic.cpp
     TESTS/test_TD_PSOLA.cpp

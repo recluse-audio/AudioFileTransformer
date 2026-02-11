@@ -88,6 +88,14 @@ target_compile_definitions(AudioFileTransformer
         JUCE_VST3_CAN_REPLACE_VST2=0
         JUCE_DISPLAY_SPLASH_SCREEN=1
         JUCE_REPORT_APP_USAGE=0
+    PRIVATE
+        RD_DEBUG_ALL=$<BOOL:${RD_DEBUG_ALL}>
+        RD_DEBUG_GRAIN_CREATION=$<BOOL:${RD_DEBUG_GRAIN_CREATION}>
+        RD_DEBUG_GRAIN_PROCESSING=$<BOOL:${RD_DEBUG_GRAIN_PROCESSING}>
+        RD_DEBUG_PITCH_DETECTION=$<BOOL:${RD_DEBUG_PITCH_DETECTION}>
+        RD_DEBUG_SAMPLE_DETAIL=$<BOOL:${RD_DEBUG_SAMPLE_DETAIL}>
+        RD_DEBUG_OUTPUT_STATS=$<BOOL:${RD_DEBUG_OUTPUT_STATS}>
+        RD_DEBUG_GAIN_PROCESSING=$<BOOL:${RD_DEBUG_GAIN_PROCESSING}>
 )
 
 # Platform-specific settings
@@ -96,6 +104,17 @@ if(MSVC)
 else()
     target_compile_options(AudioFileTransformer PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+#==============================================================================
+# Debug Logging Options (RD submodule)
+#==============================================================================
+option(RD_DEBUG_ALL "Enable all RD debug logging" OFF)
+option(RD_DEBUG_GRAIN_CREATION "Enable grain creation debug logging" OFF)
+option(RD_DEBUG_GRAIN_PROCESSING "Enable grain processing debug logging" OFF)
+option(RD_DEBUG_PITCH_DETECTION "Enable pitch detection debug logging" OFF)
+option(RD_DEBUG_SAMPLE_DETAIL "Enable sample-level debug logging" OFF)
+option(RD_DEBUG_OUTPUT_STATS "Enable output statistics logging" OFF)
+option(RD_DEBUG_GAIN_PROCESSING "Enable gain processing debug logging" OFF)
 
 #==============================================================================
 # Tests (optional)
@@ -147,6 +166,13 @@ if(BUILD_TESTS OR TARGET Tests)
         JucePlugin_WantsMidiInput=0
         JucePlugin_ProducesMidiOutput=0
         JucePlugin_IsMidiEffect=0
+        RD_DEBUG_ALL=$<BOOL:${RD_DEBUG_ALL}>
+        RD_DEBUG_GRAIN_CREATION=$<BOOL:${RD_DEBUG_GRAIN_CREATION}>
+        RD_DEBUG_GRAIN_PROCESSING=$<BOOL:${RD_DEBUG_GRAIN_PROCESSING}>
+        RD_DEBUG_PITCH_DETECTION=$<BOOL:${RD_DEBUG_PITCH_DETECTION}>
+        RD_DEBUG_SAMPLE_DETAIL=$<BOOL:${RD_DEBUG_SAMPLE_DETAIL}>
+        RD_DEBUG_OUTPUT_STATS=$<BOOL:${RD_DEBUG_OUTPUT_STATS}>
+        RD_DEBUG_GAIN_PROCESSING=$<BOOL:${RD_DEBUG_GAIN_PROCESSING}>
     )
 
     # Enable CTest
