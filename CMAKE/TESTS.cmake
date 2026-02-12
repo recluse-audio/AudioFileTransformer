@@ -21,6 +21,7 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
     SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp
     SUBMODULES/RD/TESTS/test_Windowing.cpp
+    SUBMODULES/RD/TESTS/test_main.cpp
     SUBMODULES/RD/TESTS/tests_Interpolator.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h

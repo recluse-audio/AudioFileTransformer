@@ -241,8 +241,7 @@ std::vector<int> TDPSOLA::computePeriodsPerSequence(const juce::AudioBuffer<floa
 }
 
 std::vector<int> TDPSOLA::placePitchMarks(const juce::AudioBuffer<float>& channelData,
-                                           const std::vector<int>& periods,
-                                           int hopSize)
+                                           const std::vector<int>& periods, int hopSize)
 {
     std::vector<int> pitchMarks;
     int numSamples = channelData.getNumSamples();
