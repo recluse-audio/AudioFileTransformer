@@ -301,9 +301,7 @@ TEST_CASE("PitchDetector - Detect Pitch on Sine Waves", "[TD_PSOLA][PitchDetecto
 
 TEST_CASE("TD_PSOLA - Process Female_Scale.wav and Compare to Golden", "[TD_PSOLA][Golden]")
 {
-    TD_PSOLA::TDPSOLA psola;
     float sampleRate = 44100.0f;
-    float fRatio = 1.5f;
 
     // Configure for more lenient pitch detection on real audio
     TD_PSOLA::TDPSOLA::Config config;
@@ -312,10 +310,22 @@ TEST_CASE("TD_PSOLA - Process Female_Scale.wav and Compare to Golden", "[TD_PSOL
     config.analysisWindowMs = 40.0f;
     config.inTypeScalar = 4.0f;    // Lenient variance tolerance
 
-    // Load input file
+    // Load input file (shared for all sections)
     juce::File currentDir = juce::File::getCurrentWorkingDirectory();
-    juce::File inputFile = currentDir.getChildFile("TESTS/TEST_FILES/Female_Scale.wav");
 
+    // Find project root (works whether running from project root or BUILD dir)
+    juce::File projectRoot = currentDir;
+    if (!projectRoot.getChildFile("TESTS").exists())
+        projectRoot = currentDir.getParentDirectory();
+
+    // Ensure TD_PSOLA output folder exists (don't delete - we want to keep each ratio's output)
+    juce::File tdPsolaOutputDir = projectRoot.getChildFile("TESTS/OUTPUT/TD_PSOLA");
+    if (!tdPsolaOutputDir.exists())
+    {
+        tdPsolaOutputDir.createDirectory();
+    }
+
+    juce::File inputFile = projectRoot.getChildFile("TESTS/TEST_FILES/Female_Scale.wav");
     REQUIRE(inputFile.existsAsFile());
 
     juce::AudioBuffer<float> inputBuffer;
@@ -343,111 +353,139 @@ TEST_CASE("TD_PSOLA - Process Female_Scale.wav and Compare to Golden", "[TD_PSOL
         monoBuffer.makeCopyOf(inputBuffer);
     }
 
-    // Process with TD-PSOLA and export grain data
-    juce::AudioBuffer<float> processedBuffer;
-    TD_PSOLA::GrainData grainData;
-    bool processSuccess = psola.processWithGrainExport(monoBuffer, processedBuffer, grainData, fRatio, sampleRate, config);
-    REQUIRE(processSuccess);
-    REQUIRE(processedBuffer.getNumSamples() > 0);
+    // Lambda to process and compare for a given shift ratio
+    auto testShiftRatio = [&](float fRatio) {
+        TD_PSOLA::TDPSOLA psola;
 
-    // Create timestamped output directory
-    std::time_t now = std::time(nullptr);
-    std::tm* localTime = std::localtime(&now);
-    char timestamp[32];
-    std::strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", localTime);
+        // Process with TD-PSOLA and export grain data
+        juce::AudioBuffer<float> processedBuffer;
+        TD_PSOLA::GrainData grainData;
+        bool processSuccess = psola.processWithGrainExport(monoBuffer, processedBuffer, grainData, fRatio, sampleRate, config);
+        REQUIRE(processSuccess);
+        REQUIRE(processedBuffer.getNumSamples() > 0);
 
-    juce::String timestampStr(timestamp);
-    juce::String outputDirName = "TD_PSOLA_" + timestampStr;
-    juce::File outputDir = currentDir.getChildFile("../TESTS/OUTPUT").getChildFile(outputDirName);
+        // Create output directory (one per ratio, no timestamp - overwrites each run)
+        juce::String ratioStr = juce::String(fRatio, 2);  // Format ratio with 2 decimal places
+        // Remove trailing zero if present (but keep at least one decimal place)
+        if (ratioStr.endsWith("0") && !ratioStr.endsWith(".0")) {
+            ratioStr = ratioStr.dropLastCharacters(1);
+        }
+        juce::String baseName = "TD_PSOLA_" + ratioStr + "_441k_Vanilla";
 
-    // Create directory if it doesn't exist
-    if (!outputDir.exists())
-    {
+        juce::File outputDir = projectRoot.getChildFile("TESTS/OUTPUT/TD_PSOLA").getChildFile(baseName);
+
+        // Delete and recreate directory to ensure clean output for this ratio
+        if (outputDir.exists())
+        {
+            outputDir.deleteRecursively();
+        }
         juce::Result createResult = outputDir.createDirectory();
         REQUIRE(createResult.wasOk());
-    }
 
-    // Write processed buffer to timestamped output file
-    juce::String outputFileName = "Female_Scale_1.5_" + timestampStr + ".wav";
-    juce::File outputFile = outputDir.getChildFile(outputFileName);
+        // Write processed buffer to timestamped output file
+        juce::String outputFileName = baseName + ".wav";
+        juce::File outputFile = outputDir.getChildFile(outputFileName);
 
-    BufferWriter::Result writeResult = BufferWriter::writeToWav(processedBuffer, outputFile, sampleRate, 24);
-    REQUIRE(writeResult == BufferWriter::Result::kSuccess);
-    REQUIRE(outputFile.existsAsFile());
+        BufferWriter::Result writeResult = BufferWriter::writeToWav(processedBuffer, outputFile, sampleRate, 24);
+        REQUIRE(writeResult == BufferWriter::Result::kSuccess);
+        REQUIRE(outputFile.existsAsFile());
 
-    // Export grain data
-    bool grainExportSuccess = TD_PSOLA::exportGrainsToCSV(grainData, outputFile.getFullPathName());
-    REQUIRE(grainExportSuccess);
+        // Export grain data
+        bool grainExportSuccess = TD_PSOLA::exportGrainsToCSV(grainData, outputFile.getFullPathName());
+        REQUIRE(grainExportSuccess);
 
-    // Verify grain export files exist
-    juce::File csvFile = outputDir.getChildFile(outputFileName.upToLastOccurrenceOf(".", false, false) + "_synthesis_grains.csv");
-    juce::File summaryFile = outputDir.getChildFile(outputFileName.upToLastOccurrenceOf(".", false, false) + "_grain_summary.txt");
-    REQUIRE(csvFile.existsAsFile());
-    REQUIRE(summaryFile.existsAsFile());
+        // Verify grain export files exist
+        juce::File csvFile = outputDir.getChildFile(outputFileName.upToLastOccurrenceOf(".", false, false) + "_synthesis_grains.csv");
+        juce::File summaryFile = outputDir.getChildFile(outputFileName.upToLastOccurrenceOf(".", false, false) + "_grain_summary.txt");
+        REQUIRE(csvFile.existsAsFile());
+        REQUIRE(summaryFile.existsAsFile());
 
-    // Load golden reference file
-    juce::File goldenFile = currentDir.getChildFile("TESTS/GOLDEN/GOLDEN_Female_Scale_1.5/GOLDEN_Female_Scale_1.5.wav");
-    REQUIRE(goldenFile.existsAsFile());
+        // Load golden reference file from GOLDEN_PYTHON_PSOLA
+        // Format ratio to match golden file names (e.g., "0.75", "1.25", "2.0")
+        juce::String goldenRatioStr = juce::String(fRatio, 2);  // Start with 2 decimals
+        // Remove trailing zero if present (but keep at least one decimal place)
+        if (goldenRatioStr.endsWith("0") && !goldenRatioStr.endsWith(".0")) {
+            goldenRatioStr = goldenRatioStr.dropLastCharacters(1);
+        }
 
-    juce::AudioBuffer<float> goldenBuffer;
-    bool goldenLoadSuccess = BufferFiller::loadFromWavFile(goldenFile, goldenBuffer);
-    REQUIRE(goldenLoadSuccess);
+        juce::String goldenPath = "SUBMODULES/RD/TESTS/GOLDEN/GOLDEN_PYTHON_PSOLA/GOLDEN_Female_Scale_" +
+                                  goldenRatioStr + "_441k_Vanilla/GOLDEN_Female_Scale_" +
+                                  goldenRatioStr + "_441k_Vanilla.wav";
+        juce::File goldenFile = projectRoot.getChildFile(goldenPath);
+        INFO("Looking for golden file: " << goldenFile.getFullPathName());
+        REQUIRE(goldenFile.existsAsFile());
 
-    // Compare buffers - note: golden may be mono, processed may be stereo
-    REQUIRE(processedBuffer.getNumSamples() == goldenBuffer.getNumSamples());
+        juce::AudioBuffer<float> goldenBuffer;
+        bool goldenLoadSuccess = BufferFiller::loadFromWavFile(goldenFile, goldenBuffer);
+        REQUIRE(goldenLoadSuccess);
 
-    // Compare only the first channel (left channel for stereo, only channel for mono)
-    int channelsToCompare = std::min(processedBuffer.getNumChannels(), goldenBuffer.getNumChannels());
-    REQUIRE(channelsToCompare > 0);
+        // Compare buffers - note: golden may be mono, processed may be stereo
+        REQUIRE(processedBuffer.getNumSamples() == goldenBuffer.getNumSamples());
 
-    INFO("Processed channels: " << processedBuffer.getNumChannels());
-    INFO("Golden channels: " << goldenBuffer.getNumChannels());
-    INFO("Comparing first channel only");
+        // Compare only the first channel (left channel for stereo, only channel for mono)
+        int channelsToCompare = std::min(processedBuffer.getNumChannels(), goldenBuffer.getNumChannels());
+        REQUIRE(channelsToCompare > 0);
 
-    // Calculate RMS difference for diagnostics
-    float maxDifference = 0.0f;
-    float sumSquaredDiff = 0.0f;
-    int numDifferentSamples = 0;
+        INFO("Shift ratio: " << fRatio);
+        INFO("Processed channels: " << processedBuffer.getNumChannels());
+        INFO("Golden channels: " << goldenBuffer.getNumChannels());
+        INFO("Comparing first channel only");
 
-    const float* processedData = processedBuffer.getReadPointer(0);
-    const float* goldenData = goldenBuffer.getReadPointer(0);
+        // Calculate RMS difference for diagnostics
+        float maxDifference = 0.0f;
+        float sumSquaredDiff = 0.0f;
+        int numDifferentSamples = 0;
 
-    for (int i = 0; i < processedBuffer.getNumSamples(); i++)
-    {
-        float diff = std::abs(processedData[i] - goldenData[i]);
-        maxDifference = std::max(maxDifference, diff);
-        sumSquaredDiff += diff * diff;
+        const float* processedData = processedBuffer.getReadPointer(0);
+        const float* goldenData = goldenBuffer.getReadPointer(0);
 
-        if (diff > 0.0001f) // Count significantly different samples
-            numDifferentSamples++;
-    }
+        for (int i = 0; i < processedBuffer.getNumSamples(); i++)
+        {
+            float diff = std::abs(processedData[i] - goldenData[i]);
+            maxDifference = std::max(maxDifference, diff);
+            sumSquaredDiff += diff * diff;
 
-    float rmsDifference = std::sqrt(sumSquaredDiff / processedBuffer.getNumSamples());
-    float percentDifferent = (100.0f * numDifferentSamples) / processedBuffer.getNumSamples();
+            if (diff > 0.0001f) // Count significantly different samples
+                numDifferentSamples++;
+        }
 
-    INFO("Max sample difference: " << maxDifference);
-    INFO("RMS difference: " << rmsDifference);
-    INFO("Percent of samples different (>0.0001): " << percentDifferent << "%");
+        float rmsDifference = std::sqrt(sumSquaredDiff / processedBuffer.getNumSamples());
+        float percentDifferent = (100.0f * numDifferentSamples) / processedBuffer.getNumSamples();
 
-    // For now, just verify the processed output is not silent
-    REQUIRE_FALSE(BufferHelper::isSilent(processedBuffer));
+        INFO("Max sample difference: " << maxDifference);
+        INFO("RMS difference: " << rmsDifference);
+        INFO("Percent of samples different (>0.0001): " << percentDifferent << "%");
 
-    // Check if the difference is reasonable (not identical due to minor algorithm differences)
-    // Allow up to 15% RMS difference from golden reference
-    // (differences due to pitch mark placement and numerical precision)
-    CHECK(rmsDifference < 0.15f);
+        // For now, just verify the processed output is not silent
+        REQUIRE_FALSE(BufferHelper::isSilent(processedBuffer));
 
-    // Log whether buffers are close enough to be considered matching
-    if (rmsDifference < 0.01f)
-    {
-        INFO("Buffers match closely (RMS < 0.01)");
-    }
-    else if (rmsDifference < 0.1f)
-    {
-        INFO("Buffers are reasonably similar (RMS < 0.1)");
-    }
-    else
-    {
-        INFO("Buffers differ significantly - algorithm may need adjustment");
-    }
+        // Check if the difference is reasonable (not identical due to minor algorithm differences)
+        // Allow up to 15% RMS difference from golden reference
+        // (differences due to pitch mark placement and numerical precision)
+        CHECK(rmsDifference < 0.15f);
+
+        // Log whether buffers are close enough to be considered matching
+        if (rmsDifference < 0.01f)
+        {
+            INFO("Buffers match closely (RMS < 0.01)");
+        }
+        else if (rmsDifference < 0.1f)
+        {
+            INFO("Buffers are reasonably similar (RMS < 0.1)");
+        }
+        else
+        {
+            INFO("Buffers differ significantly - algorithm may need adjustment");
+        }
+    };
+
+    // Test each shift ratio
+    SECTION("Shift ratio 0.5") { testShiftRatio(0.5f); }
+    SECTION("Shift ratio 0.75") { testShiftRatio(0.75f); }
+    SECTION("Shift ratio 0.9") { testShiftRatio(0.9f); }
+    SECTION("Shift ratio 1.0") { testShiftRatio(1.0f); }
+    SECTION("Shift ratio 1.1") { testShiftRatio(1.1f); }
+    SECTION("Shift ratio 1.25") { testShiftRatio(1.25f); }
+    SECTION("Shift ratio 1.5") { testShiftRatio(1.5f); }
+    SECTION("Shift ratio 2.0") { testShiftRatio(2.0f); }
 }
