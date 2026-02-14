@@ -19,6 +19,8 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/test_PitchManager.cpp
     SUBMODULES/RD/TESTS/test_PitchMarker.cpp
     SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
+    SUBMODULES/RD/TESTS/test_SynthMark.cpp
+    SUBMODULES/RD/TESTS/test_SynthMarker.cpp
     SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp
     SUBMODULES/RD/TESTS/test_Windowing.cpp
     SUBMODULES/RD/TESTS/test_main.cpp
