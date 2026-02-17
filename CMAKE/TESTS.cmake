@@ -21,6 +21,8 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
     SUBMODULES/RD/TESTS/test_SynthMark.cpp
     SUBMODULES/RD/TESTS/test_SynthMarker.cpp
+    SUBMODULES/RD/TESTS/test_TD_Grain.cpp
+    SUBMODULES/RD/TESTS/test_TD_Granulator.cpp
     SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp
     SUBMODULES/RD/TESTS/test_Windowing.cpp
     SUBMODULES/RD/TESTS/test_main.cpp
