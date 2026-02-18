@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "ITEMS/0007_window-must-be-2x-period.md",
-                "mode": "source",
+                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "0007_window-must-be-2x-period"
+              "title": "0002_test-window-application-to-grain"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "ITEMS/0007_window-must-be-2x-period.md",
+                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 0007_window-must-be-2x-period"
+              "title": "Backlinks for 0002_test-window-application-to-grain"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "ITEMS/0007_window-must-be-2x-period.md",
+                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 0007_window-must-be-2x-period"
+              "title": "Outgoing links from 0002_test-window-application-to-grain"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "ITEMS/0007_window-must-be-2x-period.md",
+                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 0007_window-must-be-2x-period"
+              "title": "Outline of 0002_test-window-application-to-grain"
             }
           }
         ]
@@ -185,7 +185,8 @@
   },
   "active": "c13b08262a4301f7",
   "lastOpenFiles": [
+    "TODO_DASHBOARD.md",
     "IN_PROGRESS/0002_test-window-application-to-grain.md",
-    "TODO_DASHBOARD.md"
+    "ITEMS/0007_window-must-be-2x-period.md"
   ]
 }
