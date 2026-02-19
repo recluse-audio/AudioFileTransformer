@@ -22,6 +22,8 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
     SUBMODULES/RD/TESTS/test_SynthMark.cpp
     SUBMODULES/RD/TESTS/test_SynthMarker.cpp
+    SUBMODULES/RD/TESTS/test_TDPSOLA_Female_Scale.cpp
+    SUBMODULES/RD/TESTS/test_TDPSOLA_Processor.cpp
     SUBMODULES/RD/TESTS/test_TD_Grain.cpp
     SUBMODULES/RD/TESTS/test_TD_Granulator.cpp
     SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp

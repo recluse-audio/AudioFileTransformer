@@ -69,9 +69,9 @@ TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransfo
     TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
 
-    SECTION("Default processor is Granulator")
+    SECTION("Default processor is TDPSOLA")
     {
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Granulator);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::TDPSOLA);
     }
 
     SECTION("Can switch to Gain processor")
@@ -87,8 +87,8 @@ TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransfo
 
     SECTION("Can switch between processors multiple times")
     {
-        // Start with default (Granulator)
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Granulator);
+        // Start with default (TDPSOLA)
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::TDPSOLA);
 
         // Switch to Gain
         processor.setActiveProcessor(ActiveProcessor::Gain);
