@@ -4,6 +4,7 @@ set(TEST_SOURCES
     SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h
     SUBMODULES/RD/TESTS/test_AudioFileHelpers.cpp
     SUBMODULES/RD/TESTS/test_AudioFileProcessor.cpp
+    SUBMODULES/RD/TESTS/test_BlockAccumulator.cpp
     SUBMODULES/RD/TESTS/test_BufferFiller.cpp
     SUBMODULES/RD/TESTS/test_BufferHelper.cpp
     SUBMODULES/RD/TESTS/test_BufferMath.cpp

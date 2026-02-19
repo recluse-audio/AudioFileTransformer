@@ -186,6 +186,11 @@ GranulatorProcessor* AudioFileTransformerProcessor::getGranulatorNode()
     return mBufferProcessingManager.getGranulatorNode();
 }
 
+TDPSOLA_Processor* AudioFileTransformerProcessor::getTDPSOLANode()
+{
+    return mBufferProcessingManager.getTDPSOLANode();
+}
+
 void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor)
 {
     mBufferProcessingManager.setActiveProcessor(processor);

@@ -5,6 +5,7 @@
 #include "BufferProcessingManager.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
+#include "../SUBMODULES/RD/SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.h"
 
 class AudioFileTransformerProcessor : public juce::AudioProcessor
 {
@@ -45,8 +46,9 @@ public:
 
     //==============================================================================
     // Access to processor graph nodes (for testing)
-    GainProcessor* getGainNode();
+    GainProcessor*       getGainNode();
     GranulatorProcessor* getGranulatorNode();
+    TDPSOLA_Processor*   getTDPSOLANode();
 
     // Processor swapping (delegated to BufferProcessingManager)
     void setActiveProcessor(ActiveProcessor processor);

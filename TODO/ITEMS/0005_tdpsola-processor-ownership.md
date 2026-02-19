@@ -1,7 +1,6 @@
 ---
 id: "0005"
 title: TDPSOLA_Processor owns all of this
-status: todo
 created: 2026-02-17
 ---
 

@@ -3,12 +3,14 @@
 #include "Util/Juce_Header.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
 #include "../SUBMODULES/RD/SOURCE/PROCESSORS/GRAIN/GranulatorProcessor.h"
+#include "../SUBMODULES/RD/SOURCE/PROCESSORS/TDPSOLA/TDPSOLA_Processor.h"
 
 // Processor type selection
 enum class ActiveProcessor
 {
     Gain,
-    Granulator
+    Granulator,
+    TDPSOLA
 };
 
 /**
@@ -29,8 +31,9 @@ public:
     ActiveProcessor getActiveProcessor() const { return mActiveProcessor; }
 
     // Access to processor graph nodes (for testing)
-    GainProcessor* getGainNode();
-    GranulatorProcessor* getGranulatorNode();
+    GainProcessor*        getGainNode();
+    GranulatorProcessor*  getGranulatorNode();
+    TDPSOLA_Processor*    getTDPSOLANode();
 
     //==============================================================================
     // Buffer processing
@@ -54,9 +57,10 @@ private:
     juce::AudioProcessorGraph::NodeID audioOutputNodeID;
     juce::AudioProcessorGraph::NodeID gainNodeID;
     juce::AudioProcessorGraph::NodeID granulatorNodeID;
+    juce::AudioProcessorGraph::NodeID tdpsolaNodeID;
 
     // Active processor tracking
-    ActiveProcessor mActiveProcessor = ActiveProcessor::Granulator;
+    ActiveProcessor mActiveProcessor = ActiveProcessor::TDPSOLA;
 
     // Error tracking
     juce::String lastError;

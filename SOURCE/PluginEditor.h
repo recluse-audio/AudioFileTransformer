@@ -40,6 +40,9 @@ private:
     juce::Slider parameterSlider;
     juce::Label parameterValueLabel;
 
+    // APVTS slider attachment — recreated when active processor changes
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mParamAttachment;
+
     // File chooser
     std::unique_ptr<juce::FileChooser> fileChooser;
 

@@ -58,12 +58,22 @@ GranulatorProcessor* BufferProcessingManager::getGranulatorNode()
     return nullptr;
 }
 
+TDPSOLA_Processor* BufferProcessingManager::getTDPSOLANode()
+{
+    for (auto* node : processorGraph.getNodes())
+    {
+        if (auto* proc = dynamic_cast<TDPSOLA_Processor*>(node->getProcessor()))
+            return proc;
+    }
+    return nullptr;
+}
+
 void BufferProcessingManager::setActiveProcessor(ActiveProcessor processor)
 {
     // Always disconnect and reconnect to ensure graph is properly configured
-    // Disconnect all connections between input/output and processors
     processorGraph.disconnectNode(gainNodeID);
     processorGraph.disconnectNode(granulatorNodeID);
+    processorGraph.disconnectNode(tdpsolaNodeID);
 
     // Determine which processor to connect
     juce::AudioProcessorGraph::NodeID activeNodeID;
@@ -72,10 +82,15 @@ void BufferProcessingManager::setActiveProcessor(ActiveProcessor processor)
         activeNodeID = gainNodeID;
         mActiveProcessor = ActiveProcessor::Gain;
     }
-    else // ActiveProcessor::Granulator
+    else if (processor == ActiveProcessor::Granulator)
     {
         activeNodeID = granulatorNodeID;
         mActiveProcessor = ActiveProcessor::Granulator;
+    }
+    else // ActiveProcessor::TDPSOLA
+    {
+        activeNodeID = tdpsolaNodeID;
+        mActiveProcessor = ActiveProcessor::TDPSOLA;
     }
 
     // Connect: Audio Input -> Active Processor -> Audio Output
@@ -221,6 +236,10 @@ void BufferProcessingManager::_setupProcessorGraph()
     // Create and add GranulatorProcessor node
     auto granulatorProcessor = std::make_unique<GranulatorProcessor>();
     granulatorNodeID = processorGraph.addNode(std::move(granulatorProcessor))->nodeID;
+
+    // Create and add TDPSOLA_Processor node
+    auto tdpsolaProcessor = std::make_unique<TDPSOLA_Processor>();
+    tdpsolaNodeID = processorGraph.addNode(std::move(tdpsolaProcessor))->nodeID;
 
     // Set the active processor (connects the appropriate processor to input/output)
     setActiveProcessor(mActiveProcessor);

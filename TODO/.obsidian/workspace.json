@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
-                "mode": "preview",
+                "file": "IN_PROGRESS/0008_create-blockaccumulator-class.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "0002_test-window-application-to-grain"
+              "title": "0008_create-blockaccumulator-class"
             }
           }
         ]
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
+                "file": "IN_PROGRESS/0008_create-blockaccumulator-class.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 0002_test-window-application-to-grain"
+              "title": "Backlinks for 0008_create-blockaccumulator-class"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
+                "file": "IN_PROGRESS/0008_create-blockaccumulator-class.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Outgoing links from 0002_test-window-application-to-grain"
+              "title": "Outgoing links from 0008_create-blockaccumulator-class"
             }
           },
           {
@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "IN_PROGRESS/0002_test-window-application-to-grain.md",
+                "file": "IN_PROGRESS/0008_create-blockaccumulator-class.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Outline of 0002_test-window-application-to-grain"
+              "title": "Outline of 0008_create-blockaccumulator-class"
             }
           }
         ]
@@ -185,8 +185,14 @@
   },
   "active": "c13b08262a4301f7",
   "lastOpenFiles": [
-    "TODO_DASHBOARD.md",
-    "IN_PROGRESS/0002_test-window-application-to-grain.md",
-    "ITEMS/0007_window-must-be-2x-period.md"
+    "ITEMS/0005_tdpsola-processor-ownership.md",
+    "IN_PROGRESS/0008_create-blockaccumulator-class.md",
+    "ITEMS/0006_handle-processor-graph-tail-length.md",
+    "DONE/0003_end-to-end.md",
+    "DONE/0004_hook-up-td-grain-to-pitch-manager.md",
+    "DONE/0007_window-must-be-2x-period.md",
+    "ITEMS/0008_my-test-item.md",
+    "DONE/0002_test-window-application-to-grain.md",
+    "TODO_DASHBOARD.md"
   ]
 }
