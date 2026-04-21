@@ -1,0 +1,61 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: 'Build configuration'
+        required: false
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake
+        uses: lukka/get-cmake@latest
+
+      - name: Configure
+        run: |
+          cmake -S . -B BUILD -DCMAKE_BUILD_TYPE=${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build VST3
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_VST3 --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build Standalone
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_Standalone --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build All
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_All --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Package bundles
+        shell: pwsh
+        run: |
+          $config = "${{ github.event.inputs.config || 'Release' }}"
+          Compress-Archive -Path "BUILD/AudioFileTransformer_artefacts/$config/VST3/AudioFileTransformer.vst3" -DestinationPath "AudioFileTransformer-Windows-VST3.zip"
+          Compress-Archive -Path "BUILD/AudioFileTransformer_artefacts/$config/Standalone/AudioFileTransformer.exe" -DestinationPath "AudioFileTransformer-Windows-Standalone.zip"
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioFileTransformer-Windows-VST3
+          path: AudioFileTransformer-Windows-VST3.zip
+
+      - name: Upload Standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioFileTransformer-Windows-Standalone
+          path: AudioFileTransformer-Windows-Standalone.zip

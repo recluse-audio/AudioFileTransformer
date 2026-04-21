@@ -1,0 +1,83 @@
+name: Build macOS x86_64
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: 'Build configuration'
+        required: false
+        default: 'Release'
+        type: choice
+        options:
+          - Release
+          - Debug
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install CMake
+        run: brew install cmake
+
+      - name: Configure
+        run: |
+          cmake -S . -B BUILD \
+            -G Xcode \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64
+
+      - name: Build VST3
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_VST3 \
+            --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build AU
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_AU \
+            --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build Standalone
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_Standalone \
+            --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Build All
+        run: |
+          cmake --build BUILD --target AudioFileTransformer_All \
+            --config ${{ github.event.inputs.config || 'Release' }}
+
+      - name: Package bundles
+        run: |
+          CONFIG=${{ github.event.inputs.config || 'Release' }}
+          ditto -c -k --sequesterRsrc --keepParent \
+            "BUILD/AudioFileTransformer_artefacts/$CONFIG/VST3/AudioFileTransformer.vst3" \
+            "AudioFileTransformer-macOS-x86_64-VST3.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "BUILD/AudioFileTransformer_artefacts/$CONFIG/AU/AudioFileTransformer.component" \
+            "AudioFileTransformer-macOS-x86_64-AU.zip"
+          ditto -c -k --sequesterRsrc --keepParent \
+            "BUILD/AudioFileTransformer_artefacts/$CONFIG/Standalone/AudioFileTransformer.app" \
+            "AudioFileTransformer-macOS-x86_64-Standalone.zip"
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioFileTransformer-macOS-x86_64-VST3
+          path: AudioFileTransformer-macOS-x86_64-VST3.zip
+
+      - name: Upload AU
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioFileTransformer-macOS-x86_64-AU
+          path: AudioFileTransformer-macOS-x86_64-AU.zip
+
+      - name: Upload Standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: AudioFileTransformer-macOS-x86_64-Standalone
+          path: AudioFileTransformer-macOS-x86_64-Standalone.zip
