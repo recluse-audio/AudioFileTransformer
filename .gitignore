@@ -12,8 +12,17 @@ _deps/
 BUILD/*
 !BUILD/.gitkeep
 
+# Projucer artifacts
+*.jucer
+Builds/
+JuceLibraryCode/
+
 # Installation artifacts
 Install/*
+
+# Test output
+TESTS/OUTPUT/
+RENDERED_AUDIO/
 
 # IDE configurations
 .idea/
@@ -41,10 +50,21 @@ out/
 *.xcworkspace/
 DerivedData/
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Signed build output
+SIGNED/PC/OUTPUT/
+SIGNED/MAC/OUTPUT/
+
+# Installer build output
+INSTALLERS/PC/BUILD/
+
+# Release packages
+RELEASE/
+
 # Operating system
 .DS_Store
 Thumbs.db
-
-# Temp local default output 
-RENDERED_AUDIO/*
-TESTS/OUTPUT/*

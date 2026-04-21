@@ -5,8 +5,8 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "TD-PSOLA/TD_PSOLA.h"
-#include "TD-PSOLA/GrainExport.h"
+#include "TD_PSOLA/TD_PSOLA.h"
+#include "TD_PSOLA/GrainExport.h"
 #include "BufferFiller.h"
 #include "BufferHelper.h"
 #include "BufferWriter.h"

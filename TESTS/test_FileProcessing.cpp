@@ -1,6 +1,6 @@
 #include "TEST_UTILS/TestUtils.h"
 #include "../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
-#include "../SOURCE/PluginProcessor.h"
+#include "Processor/PluginProcessor.h"
 #include <catch2/catch_test_macros.hpp>
 
 TEST_CASE("AudioFileTransformerProcessor file processing", "[AudioFileTransformer][file]")

@@ -1,7 +1,7 @@
 #include "TEST_UTILS/TestUtils.h"
-#include "../../SOURCE/PluginProcessor.h"
-#include "../../SUBMODULES/RD/SOURCE/BufferFiller.h"
-#include "../../SUBMODULES/RD/SOURCE/PROCESSORS/GAIN/GainProcessor.h"
+#include "Processor/PluginProcessor.h"
+#include "BufferFiller.h"
+#include "PROCESSORS/GAIN/GainProcessor.h"
 
 TEST_CASE("Diagnostic: Processor graph node accessibility", "[diagnostic]")
 {

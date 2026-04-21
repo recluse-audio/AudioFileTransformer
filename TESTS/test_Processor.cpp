@@ -1,7 +1,7 @@
 #include "TEST_UTILS/TestUtils.h"
 #include "../../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
-#include "../../SOURCE/PluginProcessor.h"
-#include "../../SUBMODULES/RD/SOURCE/BufferFiller.h"
+#include "Processor/PluginProcessor.h"
+#include "BufferFiller.h"
 
 TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransformer][processor]")
 {
