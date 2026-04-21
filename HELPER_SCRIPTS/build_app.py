@@ -4,6 +4,7 @@ import platform
 import subprocess
 import sys
 from pathlib import Path
+from build_complete import beep
 
 ROOT = Path(__file__).resolve().parents[1] if (Path(__file__).parent.name.lower() in {"scripts", "script"}) else Path.cwd()
 BUILD_DIR = ROOT / "BUILD"
@@ -50,5 +51,10 @@ def main():
 if __name__ == "__main__":
     try:
         main()
+        beep(success=True)
     except subprocess.CalledProcessError as e:
+        beep(success=False)
         sys.exit(e.returncode)
+    except Exception:
+        beep(success=False)
+        raise

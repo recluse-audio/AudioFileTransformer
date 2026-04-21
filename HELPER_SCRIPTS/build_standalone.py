@@ -49,7 +49,7 @@ def main() -> int:
         configure_cmd += [f"-DCMAKE_BUILD_TYPE={args.config}"]
     run(configure_cmd, cwd=root)
 
-    build_cmd = [cmake, "--build", str(build_dir), "--target", f"{PLUGIN_NAME}_VST3"]
+    build_cmd = [cmake, "--build", str(build_dir), "--target", f"{PLUGIN_NAME}_Standalone"]
     if sys.platform.startswith("win"):
         build_cmd += ["--config", args.config]
     run(build_cmd, cwd=root)

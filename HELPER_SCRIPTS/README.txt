@@ -1,16 +1,28 @@
-Hello, welcome to the scripts directory!
+HELPER_SCRIPTS — Build utilities for JUCE plugins
+===================================================
 
-'rebuild' is used to signify deleting build folder and starting fresh.
-'build' is used to represent a recompile of the modified build target.
+Run all scripts from the project root directory.
 
-I'm not sure what exactly is done under the hood on this, I believe it is handled by CMake.
-Have a look at the scripts and you will see the difference.  I simply don't do the 'rm -rf build' 'mkdir build' steps in the scripts
+PLUGIN_NAME is derived automatically from the repo directory name.
 
-I made these scripts to easily call these actions from .vscode tasks, for which I can create hotkeys.  
-I didn't have the scripts before, but I thought hey, what if someone has xcode or Vim?
+Scripts
+-------
+build_vst3.py       Build VST3 target          [--config Debug|Release]
+build_standalone.py Build Standalone target     [--config Debug|Release]
+build_au.py         Build AU target (macOS)     [--config Debug|Release]
+build_tests.py      Build and run Catch2 tests  [--config Debug|Release]
+rebuild_all.py      Full clean + rebuild        [--config --clean --target --generator]
+regenSource.py      Regenerate CMAKE/SOURCES.cmake and CMAKE/TESTS.cmake
+update_version.py   Bump patch version and write SOURCE/Util/Version.h
 
-Also, it's annoying to change directories all the time for calling cmake commands.
+Shared utilities
+----------------
+build_complete.py   Provides find_cmake() and beep() — imported by all build scripts
+SOUNDS/             WAV files for success/failure audio feedback (Windows)
 
-
-Call these from the root directory in a CLI:
-`/SCRIPTS/rebuild_all.sh`
+Notes
+-----
+- find_cmake() checks PATH first, then common macOS install locations
+- beep() plays SOUNDS/success_sound.wav or failure_sound.wav on Windows,
+  falls back to system beep if WAV is missing, terminal bell on macOS/Linux
+- regenSource.py scans SOURCE/ and any non-JUCE SUBMODULES/*/SOURCE/ directories

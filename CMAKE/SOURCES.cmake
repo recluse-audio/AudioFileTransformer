@@ -1,15 +1,15 @@
 set(SOURCES
-    SOURCE/BufferProcessingManager.cpp
-    SOURCE/BufferProcessingManager.h
-    SOURCE/FileProcessingManager.cpp
-    SOURCE/FileProcessingManager.h
-    SOURCE/PluginEditor.cpp
-    SOURCE/PluginEditor.h
-    SOURCE/PluginProcessor.cpp
-    SOURCE/PluginProcessor.h
-    SOURCE/TD-PSOLA/GrainExport.h
-    SOURCE/TD-PSOLA/TD_PSOLA.cpp
-    SOURCE/TD-PSOLA/TD_PSOLA.h
+    SOURCE/Components/PluginEditor.cpp
+    SOURCE/Components/PluginEditor.h
+    SOURCE/Processor/BufferProcessingManager.cpp
+    SOURCE/Processor/BufferProcessingManager.h
+    SOURCE/Processor/FileProcessingManager.cpp
+    SOURCE/Processor/FileProcessingManager.h
+    SOURCE/Processor/PluginProcessor.cpp
+    SOURCE/Processor/PluginProcessor.h
+    SOURCE/TD_PSOLA/GrainExport.h
+    SOURCE/TD_PSOLA/TD_PSOLA.cpp
+    SOURCE/TD_PSOLA/TD_PSOLA.h
     SOURCE/Util/FileUtils.cpp
     SOURCE/Util/FileUtils.h
     SOURCE/Util/Juce_Header.h

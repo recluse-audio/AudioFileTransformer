@@ -1,35 +1,4 @@
 set(TEST_SOURCES
-    SUBMODULES/RD/TESTS/TEST_UTILS/BufferGenerator.h
-    SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.cpp
-    SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h
-    SUBMODULES/RD/TESTS/test_AudioFileHelpers.cpp
-    SUBMODULES/RD/TESTS/test_AudioFileProcessor.cpp
-    SUBMODULES/RD/TESTS/test_BlockAccumulator.cpp
-    SUBMODULES/RD/TESTS/test_BufferFiller.cpp
-    SUBMODULES/RD/TESTS/test_BufferHelper.cpp
-    SUBMODULES/RD/TESTS/test_BufferMath.cpp
-    SUBMODULES/RD/TESTS/test_BufferRange.cpp
-    SUBMODULES/RD/TESTS/test_BufferWriter.cpp
-    SUBMODULES/RD/TESTS/test_CircularBuffer.cpp
-    SUBMODULES/RD/TESTS/test_GainProcessor.cpp
-    SUBMODULES/RD/TESTS/test_Granulator.cpp
-    SUBMODULES/RD/TESTS/test_GranulatorProcessor.cpp
-    SUBMODULES/RD/TESTS/test_PitchDetection_Arpeggios.cpp
-    SUBMODULES/RD/TESTS/test_PitchDetection_Somewhere.cpp
-    SUBMODULES/RD/TESTS/test_PitchDetector.cpp
-    SUBMODULES/RD/TESTS/test_PitchManager.cpp
-    SUBMODULES/RD/TESTS/test_PitchMarker.cpp
-    SUBMODULES/RD/TESTS/test_RelativeFilePath.cpp
-    SUBMODULES/RD/TESTS/test_SynthMark.cpp
-    SUBMODULES/RD/TESTS/test_SynthMarker.cpp
-    SUBMODULES/RD/TESTS/test_TDPSOLA_Female_Scale.cpp
-    SUBMODULES/RD/TESTS/test_TDPSOLA_Processor.cpp
-    SUBMODULES/RD/TESTS/test_TD_Grain.cpp
-    SUBMODULES/RD/TESTS/test_TD_Granulator.cpp
-    SUBMODULES/RD/TESTS/test_TD_PitchDetector.cpp
-    SUBMODULES/RD/TESTS/test_Windowing.cpp
-    SUBMODULES/RD/TESTS/test_main.cpp
-    SUBMODULES/RD/TESTS/tests_Interpolator.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
     TESTS/test_FileProcessing.cpp
