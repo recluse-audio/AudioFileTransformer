@@ -137,7 +137,11 @@ if(BUILD_TESTS OR TARGET Tests)
     add_executable(Tests)
     include(CMAKE/TESTS.cmake)
     include(CMAKE/SOURCES.cmake)
-    target_sources(Tests PRIVATE ${TEST_SOURCES} ${SOURCES})
+    target_sources(Tests PRIVATE
+        ${TEST_SOURCES}
+        ${SOURCES}
+        ${CMAKE_CURRENT_SOURCE_DIR}/SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.cpp
+    )
 
     target_include_directories(Tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}
