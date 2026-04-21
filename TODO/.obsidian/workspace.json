@@ -183,8 +183,11 @@
       "bases:Create new base": false
     }
   },
-  "active": "c13b08262a4301f7",
+  "active": "9b4169e8d5ce0f84",
   "lastOpenFiles": [
+    "Untitled.base",
+    "Untitled 1.base",
+    "open another vault.md",
     "ITEMS/0005_tdpsola-processor-ownership.md",
     "IN_PROGRESS/0008_create-blockaccumulator-class.md",
     "ITEMS/0006_handle-processor-graph-tail-length.md",
