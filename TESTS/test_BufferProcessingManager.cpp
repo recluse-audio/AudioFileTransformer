@@ -10,22 +10,29 @@
 
 TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][buffer]")
 {
+    //========== BOILERPLATE =============
     TestUtils::SetupAndTeardown setup;
-    juce::AudioBuffer<float> inputBuffer (2, 1024);
-    juce::AudioBuffer<float> outputBuffer (2, 1024);
+
+    //========== BUFFER SETUP =============
+    // Make sure the inputBuffer is all 1s and the outputBuffer all 0s
+    const int numChannels = 2;
+    const int numSamples = 1024;
+    juce::AudioBuffer<float> inputBuffer (numChannels, numSamples);
+    juce::AudioBuffer<float> outputBuffer (numChannels, numSamples);
     inputBuffer.clear();
     outputBuffer.clear();
 
     BufferFiller::fillWithAllOnes(inputBuffer);
-    int numSamples  = inputBuffer.getNumSamples();
-    int numChannels = inputBuffer.getNumChannels();
-    
+
     for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
     {
         for (int ch = 0; ch < numChannels; ++ch)
         {
-            float sample = inputBuffer.getSample(ch, sampleIndex);
-            CHECK(sample == 1.f);
+            float inputSample = inputBuffer.getSample(ch, sampleIndex);
+            float outputSample = outputBuffer.getSample(ch, sampleIndex);
+
+            CHECK(inputSample == 1.f);
+            CHECK(outputSample == 0.f);
         }
     }
 
