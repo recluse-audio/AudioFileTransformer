@@ -25,7 +25,7 @@ TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][b
         for (int ch = 0; ch < numChannels; ++ch)
         {
             float sample = inputBuffer.getSample(ch, sampleIndex);
-            CHECK(sample == 0.f);
+            CHECK(sample == 1.f);
         }
     }
 
