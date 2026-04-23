@@ -31,12 +31,8 @@ ActiveProcessor BufferProcessingManager::getActiveProcessor() const
 }
 
 //==============================================================================
-bool BufferProcessingManager::processBuffers(
-    const juce::AudioBuffer<float>& inputBuffer,
-    juce::AudioBuffer<float>& outputBuffer,
-    double sampleRate,
-    int blockSize,
-    std::function<void(float)> progressCallback)
+bool BufferProcessingManager::processBuffers(const juce::AudioBuffer<float>& inputBuffer,juce::AudioBuffer<float>& outputBuffer,
+    double sampleRate,int blockSize,std::function<void(float)> progressCallback)
 {
     lastError.clear();
 

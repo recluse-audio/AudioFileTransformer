@@ -38,11 +38,36 @@ TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][b
     }
     //===================== END BUFFER SETUP =======================
 
-    //============= SETUP BufferProcessingManager =================
+    //============= Change Processor BufferProcessingManager =================
     BufferProcessingManager bpManager;
+    bpManager.setActiveProcessor(ActiveProcessor::kGrainShifter);
+    CHECK(bpManager.getActiveProcessor() == ActiveProcessor::kGrainShifter);
+
     bpManager.setActiveProcessor(ActiveProcessor::kGain);
     CHECK(bpManager.getActiveProcessor() == ActiveProcessor::kGain);
-    
-    bpManager.setActiveProcessor(ActiveProcessor::kGrainShifter);
-    CHECK(bpManager.getActiveProcessor() == ActiveProcessor::kGain);
+
+    //============= Retrieve GainProcessor and set gain =================
+    auto* gainProcessor = dynamic_cast<GainProcessor*>(bpManager.getSwapper().getProcessorByIndex(ActiveProcessor::kGain));
+    REQUIRE(gainProcessor != nullptr);
+
+    //================ Process With Gain Processor ==============================
+    gainProcessor->setGain(0.5f);
+    bpManager.processBuffers(inputBuffer, outputBuffer, 44100.0, 512);
+    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            float outputSample = outputBuffer.getSample(ch, sampleIndex);
+            CHECK(outputSample == 0.5f);
+        }
+    outputBuffer.clear();
+
+    gainProcessor->setGain(0.314f);
+    bpManager.processBuffers(inputBuffer, outputBuffer, 44100.0, 512);
+    for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
+        for (int ch = 0; ch < numChannels; ++ch)
+        {
+            float outputSample = outputBuffer.getSample(ch, sampleIndex);
+            CHECK(outputSample == 0.314f);
+        }
+    outputBuffer.clear();
 }
