@@ -10,7 +10,6 @@
 #include "BufferFiller.h"
 #include "BufferHelper.h"
 #include "BufferWriter.h"
-#include "PITCH/PitchDetector.h"
 #include <ctime>
 
 TEST_CASE("TD_PSOLA - Basic Instantiation", "[TD_PSOLA]")
@@ -193,109 +192,6 @@ TEST_CASE("BufferFiller - Tukey Window Generation", "[TD_PSOLA][BufferFiller]")
 
         float midValue = window.getSample(0, 50);
         REQUIRE(midValue > 0.9f);
-    }
-}
-
-TEST_CASE("PitchDetector - Detect Pitch on Sine Waves", "[TD_PSOLA][PitchDetector]")
-{
-    PitchDetector pitchDetector;
-    int detectionSize = 4096;
-
-    SECTION("Detect period=100 sine wave")
-    {
-        int generatedPeriod = 100;
-
-        juce::AudioBuffer<float> buffer(1, detectionSize);
-        BufferFiller::generateSineCycles(buffer, generatedPeriod);
-
-        pitchDetector.prepareToPlay(detectionSize);
-        pitchDetector.setThreshold(0.1); // Lower threshold for perfect sine waves
-
-        float detectedPeriod = pitchDetector.process(buffer);
-
-        REQUIRE(detectedPeriod > 0.0f);
-        // Allow 10% tolerance for pitch detection algorithm variance
-        float tolerance = generatedPeriod * 0.1f;
-        REQUIRE_THAT(detectedPeriod,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
-    }
-
-    SECTION("Detect period=200 sine wave")
-    {
-        int generatedPeriod = 200;
-
-        juce::AudioBuffer<float> buffer(1, detectionSize);
-        BufferFiller::generateSineCycles(buffer, generatedPeriod);
-
-        pitchDetector.prepareToPlay(detectionSize);
-        pitchDetector.setThreshold(0.1);
-
-        float detectedPeriod = pitchDetector.process(buffer);
-
-        REQUIRE(detectedPeriod > 0.0f);
-        float tolerance = generatedPeriod * 0.1f;
-        REQUIRE_THAT(detectedPeriod,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
-    }
-
-    SECTION("Detect period=50 sine wave")
-    {
-        int generatedPeriod = 50;
-
-        juce::AudioBuffer<float> buffer(1, detectionSize);
-        BufferFiller::generateSineCycles(buffer, generatedPeriod);
-
-        pitchDetector.prepareToPlay(detectionSize);
-        pitchDetector.setThreshold(0.1);
-
-        float detectedPeriod = pitchDetector.process(buffer);
-
-        REQUIRE(detectedPeriod > 0.0f);
-        float tolerance = generatedPeriod * 0.1f;
-        REQUIRE_THAT(detectedPeriod,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
-    }
-
-    SECTION("Detect period=400 sine wave (low frequency)")
-    {
-        int generatedPeriod = 400;
-
-        juce::AudioBuffer<float> buffer(1, detectionSize);
-        BufferFiller::generateSineCycles(buffer, generatedPeriod);
-
-        pitchDetector.prepareToPlay(detectionSize);
-        pitchDetector.setThreshold(0.1);
-
-        float detectedPeriod = pitchDetector.process(buffer);
-
-        REQUIRE(detectedPeriod > 0.0f);
-        float tolerance = generatedPeriod * 0.1f;
-        REQUIRE_THAT(detectedPeriod,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
-    }
-
-    SECTION("Test threshold adjustment for perfect sine waves")
-    {
-        int generatedPeriod = 100;
-        float tolerance = generatedPeriod * 0.1f;
-
-        juce::AudioBuffer<float> buffer(1, detectionSize);
-        BufferFiller::generateSineCycles(buffer, generatedPeriod);
-
-        pitchDetector.prepareToPlay(detectionSize);
-
-        // Test with very low threshold (more permissive for perfect sines)
-        pitchDetector.setThreshold(0.05);
-        float detectedPeriod1 = pitchDetector.process(buffer);
-        REQUIRE(detectedPeriod1 > 0.0f);
-        REQUIRE_THAT(detectedPeriod1,
-                    Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
-
-        // Test with medium-low threshold
-        pitchDetector.setThreshold(0.1);
-        float detectedPeriod2 = pitchDetector.process(buffer);
-        REQUIRE(detectedPeriod2 > 0.0f);
-        REQUIRE_THAT(detectedPeriod2, Catch::Matchers::WithinAbs(static_cast<float>(generatedPeriod), tolerance));
     }
 }
 

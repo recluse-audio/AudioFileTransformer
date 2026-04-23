@@ -6,12 +6,7 @@
 AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     : AudioProcessor(_getBusesProperties())
 {
-    // Register audio formats
     formatManager.registerBasicFormats();
-
-    // TEMPORARY: Create direct processor instance for debugging
-    // mTestGranulator = std::make_unique<GranulatorProcessor>();
-    mTestGain = std::make_unique<GainProcessor>();
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()
@@ -86,37 +81,15 @@ void AudioFileTransformerProcessor::changeProgramName(int index, const juce::Str
 //==============================================================================
 void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    // TEMPORARY: Prepare direct processor instance
-    // if (mTestGranulator)
-    //     mTestGranulator->prepareToPlay(sampleRate, samplesPerBlock);
-    if (mTestGain)
-    {
-        mTestGain->prepareToPlay(sampleRate, samplesPerBlock);
-        mTestGain->setGain(2.0f); // 2x boost - should be LOUD and obvious
-    }
+    mBufferProcessingManager.prepareToPlay(sampleRate, samplesPerBlock);
 
-    // Update the main processor's reported latency after child processors are prepared
-    if (getActiveProcessor() == ActiveProcessor::Gain)
-    {
-        auto* gainNode = getGainNode();
-        if (gainNode)
-            setLatencySamples(gainNode->getLatencySamples());
-    }
-    else // ActiveProcessor::Granulator
-    {
-        auto* granulatorNode = getGranulatorNode();
-        if (granulatorNode)
-            setLatencySamples(granulatorNode->getLatencySamples());
-    }
+    if (auto* active = mBufferProcessingManager.getSwapper().getActiveProcessor())
+        setLatencySamples(active->getLatencySamples());
 }
 
 void AudioFileTransformerProcessor::releaseResources()
 {
-    // TEMPORARY: Release direct processor instance
-    // if (mTestGranulator)
-    //     mTestGranulator->releaseResources();
-    if (mTestGain)
-        mTestGain->releaseResources();
+    mBufferProcessingManager.releaseResources();
 }
 
 bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -178,17 +151,14 @@ void AudioFileTransformerProcessor::setStateInformation(const void* data, int si
 
 GainProcessor* AudioFileTransformerProcessor::getGainNode()
 {
-    return mBufferProcessingManager.getGainNode();
+    return dynamic_cast<GainProcessor*>(
+        mBufferProcessingManager.getSwapper().getProcessorByIndex(ActiveProcessor::kGain));
 }
 
-GranulatorProcessor* AudioFileTransformerProcessor::getGranulatorNode()
+GrainShifterProcessor* AudioFileTransformerProcessor::getGrainShifterNode()
 {
-    return mBufferProcessingManager.getGranulatorNode();
-}
-
-TDPSOLA_Processor* AudioFileTransformerProcessor::getTDPSOLANode()
-{
-    return mBufferProcessingManager.getTDPSOLANode();
+    return dynamic_cast<GrainShifterProcessor*>(
+        mBufferProcessingManager.getSwapper().getProcessorByIndex(ActiveProcessor::kGrainShifter));
 }
 
 void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor)
@@ -261,23 +231,10 @@ bool AudioFileTransformerProcessor::processFile(const juce::File& inputFile, con
     int latencySamples = 0;
     double tailLengthSeconds = 0.0;
 
-    if (getActiveProcessor() == ActiveProcessor::Gain)
+    if (auto* active = mBufferProcessingManager.getSwapper().getActiveProcessor())
     {
-        auto* gainNode = getGainNode();
-        if (gainNode)
-        {
-            latencySamples = gainNode->getLatencySamples();
-            tailLengthSeconds = gainNode->getTailLengthSeconds();
-        }
-    }
-    else if (getActiveProcessor() == ActiveProcessor::Granulator)
-    {
-        auto* granulatorNode = getGranulatorNode();
-        if (granulatorNode)
-        {
-            latencySamples = granulatorNode->getLatencySamples();
-            tailLengthSeconds = granulatorNode->getTailLengthSeconds();
-        }
+        latencySamples = active->getLatencySamples();
+        tailLengthSeconds = active->getTailLengthSeconds();
     }
 
     const int tailSamples = (tailLengthSeconds > 0) ? static_cast<int>(tailLengthSeconds * sampleRate) : 0;
@@ -341,32 +298,14 @@ bool AudioFileTransformerProcessor::startFileProcessing(std::function<void(float
         return false;
     }
 
-    auto activeProc = getActiveProcessor();
-    juce::AudioProcessor* activeNode = nullptr;
-    juce::String processorName;
-    if (activeProc == ActiveProcessor::Gain)
-    {
-        activeNode = getGainNode();
-        processorName = "Gain";
-    }
-    else if (activeProc == ActiveProcessor::Granulator)
-    {
-        activeNode = getGranulatorNode();
-        processorName = "Granulator";
-    }
-    else
-    {
-        activeNode = getTDPSOLANode();
-        processorName = "TDPSOLA";
-    }
+    auto* activeNode = mBufferProcessingManager.getSwapper().getActiveProcessor();
+    juce::String processorName = activeNode ? activeNode->getName() : juce::String("None");
 
     juce::String parameterXml = "<NoParameters/>";
     if (auto* gain = dynamic_cast<GainProcessor*>(activeNode))
         parameterXml = gain->getAPVTS().copyState().toXmlString();
-    else if (auto* gran = dynamic_cast<GranulatorProcessor*>(activeNode))
-        parameterXml = gran->getAPVTS().copyState().toXmlString();
-    else if (auto* tdp = dynamic_cast<TDPSOLA_Processor*>(activeNode))
-        parameterXml = tdp->getAPVTS().copyState().toXmlString();
+    else if (auto* shifter = dynamic_cast<GrainShifterProcessor*>(activeNode))
+        parameterXml = shifter->getAPVTS().copyState().toXmlString();
 
     juce::String md;
     md << "# Transformation Data\n\n"

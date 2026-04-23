@@ -56,9 +56,8 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     addAndMakeVisible(processorLabel);
 
     processorSelector.addItem("Gain Processor", 1);
-    processorSelector.addItem("Granulator Processor (Pitch Shift)", 2);
-    processorSelector.addItem("TDPSOLA Processor (Pitch Shift)", 3);
-    processorSelector.setSelectedId(3);  // Default to TDPSOLA
+    processorSelector.addItem("Grain Shifter (TD-PSOLA)", 2);
+    processorSelector.setSelectedId(2);  // Default to GrainShifter
     processorSelector.onChange = [this]() { processorSelectionChanged(); };
     addAndMakeVisible(processorSelector);
 
@@ -79,8 +78,9 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     parameterValueLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     addAndMakeVisible(parameterValueLabel);
 
-    // Configure parameter control for default processor (TDPSOLA)
-    configureParameterControlForProcessor(ActiveProcessor::TDPSOLA);
+    // Configure parameter control for default processor (Grain Shifter)
+    mProcessor.setActiveProcessor(ActiveProcessor::kGrainShifter);
+    configureParameterControlForProcessor(ActiveProcessor::kGrainShifter);
 
     // Set window size
     setSize(600, 450);
@@ -277,7 +277,7 @@ void AudioFileTransformerEditor::updateParameterValueLabel()
     float paramValue = static_cast<float>(parameterSlider.getValue());
     auto activeProc = mProcessor.getActiveProcessor();
 
-    if (activeProc == ActiveProcessor::Gain)
+    if (activeProc == ActiveProcessor::kGain)
     {
         parameterValueLabel.setText(juce::String(paramValue, 3), juce::dontSendNotification);
 
@@ -285,22 +285,7 @@ void AudioFileTransformerEditor::updateParameterValueLabel()
         if (gainNode != nullptr)
             gainNode->setGain(paramValue);
     }
-    else if (activeProc == ActiveProcessor::Granulator)
-    {
-        parameterValueLabel.setText(juce::String(paramValue, 2), juce::dontSendNotification);
-
-        auto* granulatorNode = mProcessor.getGranulatorNode();
-        if (granulatorNode != nullptr)
-        {
-            auto* param = granulatorNode->getAPVTS().getParameter("shift ratio");
-            if (param != nullptr)
-            {
-                float normalizedValue = (paramValue - 0.5f) / 1.0f;
-                param->setValueNotifyingHost(normalizedValue);
-            }
-        }
-    }
-    else // ActiveProcessor::TDPSOLA — slider is bound via SliderAttachment; just update label
+    else // ActiveProcessor::kGrainShifter — slider is bound via SliderAttachment; just update label
     {
         parameterValueLabel.setText(juce::String(paramValue, 2), juce::dontSendNotification);
     }
@@ -311,31 +296,23 @@ void AudioFileTransformerEditor::configureParameterControlForProcessor(ActivePro
     // Drop any existing APVTS attachment before reconfiguring the slider range.
     mParamAttachment.reset();
 
-    if (processor == ActiveProcessor::Gain)
+    if (processor == ActiveProcessor::kGain)
     {
         parameterLabel.setText("Gain (0.0 = silent, 1.0 = full volume):", juce::dontSendNotification);
         parameterSlider.setRange(0.0, 1.0, 0.001);
         parameterSlider.setValue(0.5, juce::dontSendNotification);
         parameterValueLabel.setText("0.500", juce::dontSendNotification);
     }
-    else if (processor == ActiveProcessor::Granulator)
-    {
-        parameterLabel.setText("Pitch Shift Ratio (0.5 = octave down, 1.0 = no shift, 1.5 = fifth up):", juce::dontSendNotification);
-        parameterSlider.setRange(0.5, 1.5, 0.01);
-        parameterSlider.setValue(1.0, juce::dontSendNotification);
-        parameterValueLabel.setText("1.00", juce::dontSendNotification);
-    }
-    else // ActiveProcessor::TDPSOLA
+    else // ActiveProcessor::kGrainShifter
     {
         parameterLabel.setText("Shift Ratio (0.5 = octave down, 1.0 = no shift, 2.0 = octave up):", juce::dontSendNotification);
         parameterValueLabel.setText("1.00", juce::dontSendNotification);
 
-        // Attach the slider directly to the TDPSOLA processor's APVTS.
-        auto* tdpsolaNode = mProcessor.getTDPSOLANode();
-        if (tdpsolaNode != nullptr)
+        auto* shifter = mProcessor.getGrainShifterNode();
+        if (shifter != nullptr)
         {
             mParamAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-                tdpsolaNode->getAPVTS(), "shift_ratio", parameterSlider);
+                shifter->getAPVTS(), "shift_ratio", parameterSlider);
         }
     }
 }
@@ -343,14 +320,8 @@ void AudioFileTransformerEditor::configureParameterControlForProcessor(ActivePro
 void AudioFileTransformerEditor::processorSelectionChanged()
 {
     int selectedId = processorSelector.getSelectedId();
-    ActiveProcessor newProcessor;
-
-    if (selectedId == 1)
-        newProcessor = ActiveProcessor::Gain;
-    else if (selectedId == 2)
-        newProcessor = ActiveProcessor::Granulator;
-    else
-        newProcessor = ActiveProcessor::TDPSOLA;
+    ActiveProcessor newProcessor = (selectedId == 1) ? ActiveProcessor::kGain
+                                                     : ActiveProcessor::kGrainShifter;
 
     mProcessor.setActiveProcessor(newProcessor);
     configureParameterControlForProcessor(newProcessor);

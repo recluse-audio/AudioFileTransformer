@@ -37,7 +37,6 @@ TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransf
         juce::MidiBuffer midiBuffer;
         processor.processBlock(buffer, midiBuffer);
 
-        // Should output silence since this is an offline-only processor
         for (int ch = 0; ch < 2; ++ch)
         {
             for (int i = 0; i < samplesPerBlock; ++i)
@@ -49,16 +48,14 @@ TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransf
         processor.releaseResources();
     }
 
-    SECTION("Processor graph nodes are accessible")
+    SECTION("Swapper processors are accessible")
     {
-        // Verify both gain and granulator nodes exist
         auto* gainNode = processor.getGainNode();
         REQUIRE(gainNode != nullptr);
 
-        auto* granulatorNode = processor.getGranulatorNode();
-        REQUIRE(granulatorNode != nullptr);
+        auto* shifterNode = processor.getGrainShifterNode();
+        REQUIRE(shifterNode != nullptr);
 
-        // Verify gain node has correct properties
         REQUIRE(gainNode->getName() == "Gain Processor");
         REQUIRE(gainNode->getTailLengthSeconds() == 0.0);
     }
@@ -69,37 +66,31 @@ TEST_CASE("AudioFileTransformerProcessor processor swapping", "[AudioFileTransfo
     TestUtils::SetupAndTeardown setup;
     AudioFileTransformerProcessor processor;
 
-    SECTION("Default processor is TDPSOLA")
+    SECTION("Default processor is Gain")
     {
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::TDPSOLA);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGain);
     }
 
-    SECTION("Can switch to Gain processor")
+    SECTION("Can switch to GrainShifter processor")
     {
-        processor.setActiveProcessor(ActiveProcessor::Gain);
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Gain);
+        processor.setActiveProcessor(ActiveProcessor::kGrainShifter);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGrainShifter);
 
-        // Verify gain node is still accessible after switching
-        auto* gainNode = processor.getGainNode();
-        REQUIRE(gainNode != nullptr);
-        gainNode->setGain(0.5f);
+        auto* shifterNode = processor.getGrainShifterNode();
+        REQUIRE(shifterNode != nullptr);
     }
 
     SECTION("Can switch between processors multiple times")
     {
-        // Start with default (TDPSOLA)
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::TDPSOLA);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGain);
 
-        // Switch to Gain
-        processor.setActiveProcessor(ActiveProcessor::Gain);
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Gain);
+        processor.setActiveProcessor(ActiveProcessor::kGrainShifter);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGrainShifter);
 
-        // Switch to Granulator
-        processor.setActiveProcessor(ActiveProcessor::Granulator);
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Granulator);
+        processor.setActiveProcessor(ActiveProcessor::kGain);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGain);
 
-        // Switch back to Gain
-        processor.setActiveProcessor(ActiveProcessor::Gain);
-        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::Gain);
+        processor.setActiveProcessor(ActiveProcessor::kGrainShifter);
+        REQUIRE(processor.getActiveProcessor() == ActiveProcessor::kGrainShifter);
     }
 }

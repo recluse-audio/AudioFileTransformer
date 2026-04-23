@@ -1,9 +1,9 @@
 set(TEST_SOURCES
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
+    TESTS/test_BufferProcessingManager.cpp
     TESTS/test_FileProcessing.cpp
     TESTS/test_FileUtils.cpp
     TESTS/test_Processor.cpp
-    TESTS/test_ProcessorDiagnostic.cpp
     TESTS/test_TD_PSOLA.cpp
 )

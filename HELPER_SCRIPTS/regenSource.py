@@ -8,6 +8,16 @@ Run this whenever you add or remove source files to update the CMake file lists.
 import os
 from pathlib import Path
 
+# Subfolders to skip when walking source directories (plus any parent containing
+# one of these as a path segment). SANNAWAG contains an alternative TD_PSOLA
+# implementation that collides with SOURCE/TD_PSOLA/ at link time.
+EXCLUDED_SEGMENTS = {'SANNAWAG', 'TDPSOLA'}
+
+
+def _is_excluded(path: str) -> bool:
+    parts = path.replace('\\', '/').split('/')
+    return any(seg in EXCLUDED_SEGMENTS for seg in parts)
+
 
 def generate_files_list(root_folders, output_file, variable_name):
     files_list = []
@@ -15,9 +25,12 @@ def generate_files_list(root_folders, output_file, variable_name):
         if not os.path.exists(root_folder):
             continue
         for folder, subfolders, files in os.walk(root_folder):
+            subfolders[:] = [s for s in subfolders if s not in EXCLUDED_SEGMENTS]
             for filename in files:
                 if filename.endswith('.cpp') or filename.endswith('.h'):
                     file_path = os.path.join(folder, filename).replace('\\', '/')
+                    if _is_excluded(file_path):
+                        continue
                     files_list.append(file_path)
     files_list.sort()
     if files_list:

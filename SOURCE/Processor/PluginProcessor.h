@@ -4,8 +4,7 @@
 #include "Processor/FileProcessingManager.h"
 #include "Processor/BufferProcessingManager.h"
 #include "PROCESSORS/GAIN/GainProcessor.h"
-#include "PROCESSORS/GRAIN/GranulatorProcessor.h"
-#include "PROCESSORS/TDPSOLA/TDPSOLA_Processor.h"
+#include "PROCESSORS/GRAIN/GrainShifterProcessor.h"
 
 class AudioFileTransformerProcessor : public juce::AudioProcessor
 {
@@ -45,10 +44,10 @@ public:
     void setStateInformation(const void* data, int sizeInBytes) override;
 
     //==============================================================================
-    // Access to processor graph nodes (for testing)
-    GainProcessor*       getGainNode();
-    GranulatorProcessor* getGranulatorNode();
-    TDPSOLA_Processor*   getTDPSOLANode();
+    // Access to the swapper and its inner processors
+    RD_ProcessorSwapper&   getSwapper() { return mBufferProcessingManager.getSwapper(); }
+    GainProcessor*         getGainNode();
+    GrainShifterProcessor* getGrainShifterNode();
 
     // Processor swapping (delegated to BufferProcessingManager)
     void setActiveProcessor(ActiveProcessor processor);
@@ -80,7 +79,6 @@ public:
     juce::AudioBuffer<float>& getProcessedBuffer() { return mProcessedBuffer; }
 private:
     //==============================================================================
-    // Buffer processing manager (owns processor graph)
     BufferProcessingManager mBufferProcessingManager;
 
     // File processing
@@ -90,12 +88,8 @@ private:
     juce::File mInputFile;
     juce::File mOutputDirectory;
 
-    juce::AudioBuffer<float> mInputBuffer; // audio read from file, not processed yet
-    juce::AudioBuffer<float> mProcessedBuffer; // results of processing of mInputBuffer
-
-    // TEMPORARY: Direct processor instance for debugging
-    // std::unique_ptr<GranulatorProcessor> mTestGranulator;
-    std::unique_ptr<GainProcessor> mTestGain;
+    juce::AudioBuffer<float> mInputBuffer;
+    juce::AudioBuffer<float> mProcessedBuffer;
 
     juce::AudioProcessor::BusesProperties _getBusesProperties();
 
