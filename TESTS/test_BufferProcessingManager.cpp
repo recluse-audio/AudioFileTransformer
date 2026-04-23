@@ -10,11 +10,12 @@
 
 TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][buffer]")
 {
-    //========== BOILERPLATE =============
+    //======================== BOILERPLATE =============
     TestUtils::SetupAndTeardown setup;
 
-    //========== BUFFER SETUP =============
+    //======================== BUFFER SETUP =============
     // Make sure the inputBuffer is all 1s and the outputBuffer all 0s
+    //
     const int numChannels = 2;
     const int numSamples = 1024;
     juce::AudioBuffer<float> inputBuffer (numChannels, numSamples);
@@ -35,5 +36,13 @@ TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][b
             CHECK(outputSample == 0.f);
         }
     }
+    //===================== END BUFFER SETUP =======================
 
+    //============= SETUP BufferProcessingManager =================
+    BufferProcessingManager bpManager;
+    bpManager.setActiveProcessor(ActiveProcessor::kGain);
+    CHECK(bpManager.getActiveProcessor() == ActiveProcessor::kGain);
+    
+    bpManager.setActiveProcessor(ActiveProcessor::kGrainShifter);
+    CHECK(bpManager.getActiveProcessor() == ActiveProcessor::kGain);
 }
