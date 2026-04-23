@@ -12,7 +12,8 @@
       "Bash(test:*)",
       "Bash(ls:*)",
       "Bash(./Tests.exe:*)",
-      "Bash(ctest:*)"
+      "Bash(ctest:*)",
+      "Bash(tasklist)"
     ]
   }
 }

@@ -312,59 +312,74 @@ void AudioFileTransformerProcessor::setInputFile(const juce::File& file)
     mInputFile = file;
 }
 
-void AudioFileTransformerProcessor::setOutputFile(const juce::File& file)
+void AudioFileTransformerProcessor::setOutputDirectory(const juce::File& directory)
 {
-    mOutputFile = file;
+    mOutputDirectory = directory;
 }
 
 juce::File AudioFileTransformerProcessor::getDefaultInputFile()
 {
-    // Try primary default location first
-    auto primaryDefault = juce::File("C:\\Users\\rdeve\\Test_Vox\\Somewhere_Mono_48k.wav");
-    if (primaryDefault.existsAsFile())
-        return primaryDefault;
-
-    // Fallback: try the test file in the project
-    auto fallbackDefault = juce::File::getCurrentWorkingDirectory()
-        .getChildFile("TESTS/TEST_FILES/Somewhere_Mono_48k.wav");
-
-    if (fallbackDefault.existsAsFile())
-        return fallbackDefault;
-
-    // If neither exists, return the primary path anyway
-    return primaryDefault;
+    return juce::File("C:\\REPOS\\PLUGIN_PROJECTS\\AudioFileTransformer\\AUDIO_FILES\\Somewhere_Mono.wav");
 }
 
-juce::File AudioFileTransformerProcessor::getDefaultOutputFile()
+juce::File AudioFileTransformerProcessor::getDefaultOutputDirectory()
 {
-    // Use desktop location for cross-platform compatibility
-    auto desktopDir = juce::File::getSpecialLocation(juce::File::userDesktopDirectory);
-    auto outputDir = desktopDir.getChildFile("AudioFileTransformations");
-
-    // Ensure AudioFileTransformations directory exists on desktop
-    if (!outputDir.exists())
-        outputDir.createDirectory();
-
-    // Create unique filename with timestamp: output_2026-02-01_14-30-45.wav
-    auto currentTime = juce::Time::getCurrentTime();
-    auto timestamp = currentTime.formatted("%Y-%m-%d_%H-%M-%S");
-    auto filename = "output_" + timestamp + ".wav";
-
-    auto defaultOutputFile = outputDir.getChildFile(filename);
-    return defaultOutputFile;
+    return juce::File("C:\\REPOS\\PLUGIN_PROJECTS\\AudioFileTransformer\\OUTPUT");
 }
 
 bool AudioFileTransformerProcessor::startFileProcessing(std::function<void(float)> progressCallback)
 {
-    // Validate files
-    if (!mInputFile.existsAsFile() || mOutputFile.getFullPathName().isEmpty())
+    if (!mInputFile.existsAsFile() || mOutputDirectory.getFullPathName().isEmpty())
         return false;
 
-    // Configure and start file processing
-    // The processor (this) is already configured with the active processor and parameters
+    auto timestamp = juce::Time::getCurrentTime().formatted("%Y-%m-%d_%H-%M-%S");
+    auto runDir = mOutputDirectory.getChildFile(timestamp);
+    auto result = runDir.createDirectory();
+    if (result.failed())
+    {
+        lastError = "Failed to create output directory: " + runDir.getFullPathName();
+        return false;
+    }
+
+    auto activeProc = getActiveProcessor();
+    juce::AudioProcessor* activeNode = nullptr;
+    juce::String processorName;
+    if (activeProc == ActiveProcessor::Gain)
+    {
+        activeNode = getGainNode();
+        processorName = "Gain";
+    }
+    else if (activeProc == ActiveProcessor::Granulator)
+    {
+        activeNode = getGranulatorNode();
+        processorName = "Granulator";
+    }
+    else
+    {
+        activeNode = getTDPSOLANode();
+        processorName = "TDPSOLA";
+    }
+
+    juce::String parameterXml = "<NoParameters/>";
+    if (auto* gain = dynamic_cast<GainProcessor*>(activeNode))
+        parameterXml = gain->getAPVTS().copyState().toXmlString();
+    else if (auto* gran = dynamic_cast<GranulatorProcessor*>(activeNode))
+        parameterXml = gran->getAPVTS().copyState().toXmlString();
+    else if (auto* tdp = dynamic_cast<TDPSOLA_Processor*>(activeNode))
+        parameterXml = tdp->getAPVTS().copyState().toXmlString();
+
+    juce::String md;
+    md << "# Transformation Data\n\n"
+       << "- **DateTime:** " << timestamp << "\n"
+       << "- **Processor:** " << processorName << "\n"
+       << "- **Input File:** " << mInputFile.getFullPathName() << "\n\n"
+       << "## Parameter State\n\n"
+       << "```xml\n" << parameterXml << "\n```\n";
+    runDir.getChildFile("Transformation_Data.md").replaceWithText(md);
+
     FileProcessingManager::ProcessingConfig config;
     config.inputFile = mInputFile;
-    config.outputFile = mOutputFile;
+    config.outputFile = runDir.getChildFile(timestamp + ".wav");
     config.processor = this;
     config.progressCallback = progressCallback;
 

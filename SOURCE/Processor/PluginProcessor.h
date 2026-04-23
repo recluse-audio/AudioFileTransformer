@@ -61,13 +61,13 @@ public:
 
     // File paths for offline processing
     void setInputFile(const juce::File& file);
-    void setOutputFile(const juce::File& file);
+    void setOutputDirectory(const juce::File& directory);
     juce::File getInputFile() const { return mInputFile; }
-    juce::File getOutputFile() const { return mOutputFile; }
+    juce::File getOutputDirectory() const { return mOutputDirectory; }
 
     // Default file paths
     static juce::File getDefaultInputFile();
-    static juce::File getDefaultOutputFile();
+    static juce::File getDefaultOutputDirectory();
 
     // Start/stop offline file processing
     bool startFileProcessing(std::function<void(float)> progressCallback);
@@ -88,7 +88,7 @@ private:
     juce::String lastError;
     FileProcessingManager mFileProcessingManager;
     juce::File mInputFile;
-    juce::File mOutputFile;
+    juce::File mOutputDirectory;
 
     juce::AudioBuffer<float> mInputBuffer; // audio read from file, not processed yet
     juce::AudioBuffer<float> mProcessedBuffer; // results of processing of mInputBuffer

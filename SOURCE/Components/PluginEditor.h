@@ -51,7 +51,7 @@ private:
 
     // Button callbacks
     void chooseInputFile();
-    void chooseOutputFile();
+    void chooseOutputDirectory();
     void processFile();
     void processorSelectionChanged();
 

@@ -20,22 +20,21 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     chooseInputButton.onClick = [this]() { chooseInputFile(); };
     addAndMakeVisible(chooseInputButton);
 
-    // Output file section
-    outputLabel.setText("Output File:", juce::dontSendNotification);
+    // Output directory section
+    outputLabel.setText("Output Directory:", juce::dontSendNotification);
     outputLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(outputLabel);
 
-    // Set default output path in processor
-    auto defaultOutputFile = AudioFileTransformerProcessor::getDefaultOutputFile();
-    mProcessor.setOutputFile(defaultOutputFile);
-    outputPathLabel.setText(defaultOutputFile.getFullPathName(), juce::dontSendNotification);
+    auto defaultOutputDir = AudioFileTransformerProcessor::getDefaultOutputDirectory();
+    mProcessor.setOutputDirectory(defaultOutputDir);
+    outputPathLabel.setText(defaultOutputDir.getFullPathName(), juce::dontSendNotification);
     outputPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
     outputPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
     outputPathLabel.setJustificationType(juce::Justification::centredLeft);
     addAndMakeVisible(outputPathLabel);
 
-    chooseOutputButton.setButtonText("Choose Output...");
-    chooseOutputButton.onClick = [this]() { chooseOutputFile(); };
+    chooseOutputButton.setButtonText("Choose Output Dir...");
+    chooseOutputButton.onClick = [this]() { chooseOutputDirectory(); };
     addAndMakeVisible(chooseOutputButton);
 
     // Process button
@@ -219,24 +218,22 @@ void AudioFileTransformerEditor::chooseInputFile()
     });
 }
 
-void AudioFileTransformerEditor::chooseOutputFile()
+void AudioFileTransformerEditor::chooseOutputDirectory()
 {
     fileChooser = std::make_unique<juce::FileChooser>(
-        "Select output location",
-        juce::File(),
-        "*.wav"
+        "Select output directory",
+        mProcessor.getOutputDirectory()
     );
 
-    auto flags = juce::FileBrowserComponent::saveMode
-               | juce::FileBrowserComponent::canSelectFiles
-               | juce::FileBrowserComponent::warnAboutOverwriting;
+    auto flags = juce::FileBrowserComponent::openMode
+               | juce::FileBrowserComponent::canSelectDirectories;
 
     fileChooser->launchAsync(flags, [this](const juce::FileChooser& fc) {
-        auto file = fc.getResult();
-        if (file.getFullPathName().isNotEmpty())
+        auto dir = fc.getResult();
+        if (dir.getFullPathName().isNotEmpty())
         {
-            mProcessor.setOutputFile(file);
-            outputPathLabel.setText(file.getFullPathName(), juce::dontSendNotification);
+            mProcessor.setOutputDirectory(dir);
+            outputPathLabel.setText(dir.getFullPathName(), juce::dontSendNotification);
             updateProcessButtonState();
         }
     });
@@ -270,7 +267,7 @@ void AudioFileTransformerEditor::setDefaultInputFile()
 void AudioFileTransformerEditor::updateProcessButtonState()
 {
     bool canProcess = mProcessor.getInputFile().existsAsFile()
-                   && mProcessor.getOutputFile().getFullPathName().isNotEmpty()
+                   && mProcessor.getOutputDirectory().getFullPathName().isNotEmpty()
                    && !mProcessor.isFileProcessing();
     processButton.setEnabled(canProcess);
 }

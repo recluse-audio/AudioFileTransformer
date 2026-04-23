@@ -26,6 +26,17 @@ find_package(Python3 REQUIRED)
 # JUCE setup
 add_subdirectory(SUBMODULES/JUCE)
 
+#==============================================================================
+# Debug Logging Options (RD submodule)
+#==============================================================================
+option(RD_DEBUG_ALL "Enable all RD debug logging" OFF)
+option(RD_DEBUG_GRAIN_CREATION "Enable grain creation debug logging" OFF)
+option(RD_DEBUG_GRAIN_PROCESSING "Enable grain processing debug logging" OFF)
+option(RD_DEBUG_PITCH_DETECTION "Enable pitch detection debug logging" OFF)
+option(RD_DEBUG_SAMPLE_DETAIL "Enable sample-level debug logging" OFF)
+option(RD_DEBUG_OUTPUT_STATS "Enable output statistics logging" OFF)
+option(RD_DEBUG_GAIN_PROCESSING "Enable gain processing debug logging" OFF)
+
 # Plugin formats — add AU only on macOS
 if(APPLE)
     set(FORMATS VST3 AU Standalone)
@@ -107,17 +118,6 @@ if(MSVC)
 else()
     target_compile_options(AudioFileTransformer PRIVATE -Wall -Wextra -Wpedantic)
 endif()
-
-#==============================================================================
-# Debug Logging Options (RD submodule)
-#==============================================================================
-option(RD_DEBUG_ALL "Enable all RD debug logging" OFF)
-option(RD_DEBUG_GRAIN_CREATION "Enable grain creation debug logging" OFF)
-option(RD_DEBUG_GRAIN_PROCESSING "Enable grain processing debug logging" OFF)
-option(RD_DEBUG_PITCH_DETECTION "Enable pitch detection debug logging" OFF)
-option(RD_DEBUG_SAMPLE_DETAIL "Enable sample-level debug logging" OFF)
-option(RD_DEBUG_OUTPUT_STATS "Enable output statistics logging" OFF)
-option(RD_DEBUG_GAIN_PROCESSING "Enable gain processing debug logging" OFF)
 
 #==============================================================================
 # Tests (optional)
