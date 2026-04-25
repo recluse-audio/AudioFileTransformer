@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="800"
+   height="600"
+   viewBox="0 0 800 600"
+   version="1.1"
+   id="svg1"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   sodipodi:docname="GUI_MOCKUP_0.svg"
+   inkscape:export-filename="GUI_MOCKUP_1.svg"
+   inkscape:export-xdpi="42.760944"
+   inkscape:export-ydpi="42.760944"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="px"
+     inkscape:zoom="1.1737973"
+     inkscape:cx="270.48964"
+     inkscape:cy="172.94298"
+     inkscape:window-width="1734"
+     inkscape:window-height="1000"
+     inkscape:window-x="1885"
+     inkscape:window-y="2160"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer3">
+    <inkscape:page
+       x="0"
+       y="0"
+       width="800"
+       height="600"
+       id="page2"
+       margin="0"
+       bleed="0" />
+  </sodipodi:namedview>
+  <defs
+     id="defs1">
+    <rect
+       x="115.86328"
+       y="-148.23685"
+       width="124.22619"
+       height="15.992252"
+       id="rect18" />
+    <rect
+       x="115.86328"
+       y="-148.23685"
+       width="124.22619"
+       height="15.992252"
+       id="rect18-4" />
+  </defs>
+  <g
+     inkscape:label="01_BACKGROUND"
+     inkscape:groupmode="layer"
+     id="layer1"
+     inkscape:highlight-color="#792734"
+     sodipodi:insensitive="true">
+    <rect
+       style="fill:#080808;fill-opacity:1;stroke:#17c476;stroke-width:0;stroke-linecap:round;stroke-linejoin:bevel;stroke-dasharray:none;stroke-opacity:0.536913;paint-order:markers fill stroke"
+       id="rect1"
+       width="800"
+       height="600"
+       x="2.220446e-16"
+       y="-4.4408921e-16"
+       inkscape:label="BG" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="02_FOOTPRINT"
+     sodipodi:insensitive="true"
+     inkscape:highlight-color="#a9a436">
+    <rect
+       style="fill:#2d0c2f;fill-opacity:1;stroke:#dcc935;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:0.969188;paint-order:markers fill stroke"
+       id="rect2"
+       width="796"
+       height="596"
+       x="2"
+       y="2"
+       sodipodi:insensitive="true"
+       inkscape:label="FOOTPRINT_RECT" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer3"
+     inkscape:label="03_SECTIONS"
+     style="display:inline"
+     inkscape:highlight-color="#a421f3">
+    <rect
+       style="fill:#1d324d;fill-opacity:0.937008;stroke:#ed5407;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;paint-order:markers fill stroke"
+       id="rect26"
+       width="486.45538"
+       height="140.56943"
+       x="-727.55322"
+       y="9.371294"
+       inkscape:label="BASE_SECTION_RECT" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#rect26"
+       id="use26"
+       inkscape:label="AUDIO_THUMBNAIL_SECTION"
+       transform="matrix(1.6182137,0,0,2.2787878,1183.3366,168.62651)"
+       style="stroke-width:0.468676;stroke-dasharray:none" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#rect26"
+       id="use27"
+       inkscape:label="FILE_IO_SECTION"
+       transform="matrix(0.5061296,0,0,1.2727273,376.75559,-5.9635508)"
+       style="stroke-width:2.4919;stroke-dasharray:none" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer4"
+     inkscape:label="04_VISUALS"
+     inkscape:highlight-color="#37f321"
+     sodipodi:insensitive="true">
+    <rect
+       style="fill:#fa4128;fill-opacity:0.347339;stroke:#10a80b;stroke-width:2;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+       id="rect5"
+       width="740.33228"
+       height="112.45554"
+       x="28.96582"
+       y="201.05687"
+       inkscape:label="INPUT_THUMBNAIL_RECT" />
+    <rect
+       style="fill:#fa4128;fill-opacity:0.347339;stroke:#10a80b;stroke-width:2;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+       id="rect14"
+       width="740.33228"
+       height="112.45554"
+       x="28.96582"
+       y="386.7789"
+       inkscape:label="INPUT_THUMBNAIL_RECT" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer5"
+     inkscape:label="05_CONTROLS"
+     inkscape:highlight-color="#21bef3"
+     sodipodi:insensitive="true">
+    <g
+       id="g23"
+       inkscape:label="BASE_FILE_CONTROL">
+      <rect
+         style="fill:#ff8272;fill-opacity:0.937008;stroke:#a8790b;stroke-width:2;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+         id="rect16"
+         width="201.05687"
+         height="45.152603"
+         x="-172.94298"
+         y="-161.01588"
+         inkscape:label="BASE_FILE_CONTROL_RECT" />
+      <text
+         xml:space="preserve"
+         id="text17-2"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.93152px;line-height:1.9;font-family:Sitka;-inkscape-font-specification:Sitka;text-align:center;letter-spacing:1.33459px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect18-4);display:inline;fill:#54d635;fill-opacity:0.903226;stroke:#54240b;stroke-width:0.799883;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.397638;paint-order:markers fill stroke"
+         transform="matrix(2.1779775,0,0,2.8704734,-460.71417,268.96463)"
+         inkscape:label="BASE_FILE_CONTROL_TEXT"
+         x="62.191319"
+         y="0"><tspan
+           x="140.77706"
+           y="-141.07764"
+           id="tspan3">~Input/File/Path.wav</tspan></text>
+      <rect
+         style="fill:#ff8272;fill-opacity:0.937008;stroke:#923e14;stroke-width:2.00001;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+         id="rect25"
+         width="190.87904"
+         height="1"
+         x="-168.10001"
+         y="-126.23888"
+         inkscape:label="BASE_FILE_CONTROL_UNDERLINE" />
+    </g>
+    <g
+       id="g20"
+       inkscape:label="BASE_LABEL">
+      <rect
+         style="fill:#d68d35;fill-opacity:1;stroke:#5fe2aa;stroke-width:2;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+         id="rect17"
+         width="183.16621"
+         height="39.189049"
+         x="99.676498"
+         y="-155.90427"
+         inkscape:label="BASE_LABEL_RECT" />
+      <text
+         xml:space="preserve"
+         id="text17"
+         style="font-size:8.76659px;line-height:1.9;text-align:center;letter-spacing:0.144519px;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect18);display:inline;fill:#54d635;fill-opacity:0.903226;stroke:#923e14;stroke-width:1.19545;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:0.968627;paint-order:markers fill stroke"
+         transform="matrix(1.40082,0,0,1.9981063,-56.413705,144.23892)"
+         inkscape:label="BASE_LABEL_TEXT"
+         x="62.191319"
+         y="0"><tspan
+           x="125.61297"
+           y="-137.38916"
+           id="tspan5"><tspan
+             style="font-family:'Segoe Fluent Icons';-inkscape-font-specification:'Segoe Fluent Icons'"
+             id="tspan4">Grain Shifter Processor</tspan></tspan></text>
+    </g>
+    <use
+       x="0"
+       y="0"
+       xlink:href="#g20"
+       id="use21"
+       inkscape:label="ACTIVE_PROCESSOR_LABEL"
+       transform="translate(-70.710678,483.89958)" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#g23"
+       id="use23"
+       transform="translate(200.20493,182.31428)"
+       inkscape:label="INPUT_FILE_CONTROL" />
+    <use
+       x="0"
+       y="0"
+       xlink:href="#g23"
+       id="use24"
+       transform="translate(199.353,249.61721)"
+       inkscape:label="OUTPUT_FILE_CONTROL" />
+  </g>
+</svg>
