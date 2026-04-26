@@ -1,5 +1,5 @@
 #include "TEST_UTILS/TestUtils.h"
-#include "../../SOURCE/Util/FileUtils.h"
+#include "Util/FileUtils.h"
 
 TEST_CASE("FileUtils::isSupportedAudioFile", "[FileUtils]")
 {

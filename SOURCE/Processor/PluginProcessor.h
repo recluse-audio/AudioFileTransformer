@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Util/Juce_Header.h"
-#include "Processor/FileProcessingManager.h"
 #include "Processor/BufferProcessingManager.h"
+#include "Processor/FileToBufferManager.h"
 #include "PROCESSORS/GAIN/GainProcessor.h"
 #include "PROCESSORS/GRAIN/GrainShifterProcessor.h"
 
@@ -54,50 +54,28 @@ public:
     ActiveProcessor getActiveProcessor() const;
 
     //==============================================================================
-    // File processing methods
-    bool processFile(const juce::File& inputFile,const juce::File& outputFile, std::function<void(float)> progressCallback = nullptr);
-    juce::String getLastError() const;
+    BufferProcessingManager& getBufferProcessingManager() { return mBufferProcessingManager; }
+    FileToBufferManager&     getFileToBufferManager()     { return mFileToBufferManager; }
 
-    // File paths for offline processing
-    void setInputFile(const juce::File& file);
-    void setOutputDirectory(const juce::File& directory);
-    juce::File getInputFile() const { return mInputFile; }
-    juce::File getOutputDirectory() const { return mOutputDirectory; }
-
-    // Default file paths
-    static juce::File getDefaultInputFile();
-    static juce::File getDefaultOutputDirectory();
-
-    // Start/stop offline file processing
-    bool startFileProcessing(std::function<void(float)> progressCallback);
-    void stopFileProcessing();
-    bool isFileProcessing() const;
-    bool wasFileProcessingSuccessful() const;
-    juce::String getFileProcessingError() const;
-
-    juce::AudioBuffer<float>& getInputBuffer() { return mInputBuffer; }
+    juce::AudioBuffer<float>& getInputBuffer()     { return mInputBuffer; }
     juce::AudioBuffer<float>& getProcessedBuffer() { return mProcessedBuffer; }
+
+    //==============================================================================
+    // Storage buffer sizing: 2ch x 60s at the maximum supported sample rate.
+    static constexpr double kMaxSupportedSampleRate = 192000.0;
+    static constexpr double kStorageSeconds         = 60.0;
+    static constexpr int    kStorageChannels        = 2;
+    static constexpr int    kStorageSamples         = static_cast<int>(kMaxSupportedSampleRate * kStorageSeconds);
+
 private:
     //==============================================================================
     BufferProcessingManager mBufferProcessingManager;
+    FileToBufferManager     mFileToBufferManager;
 
-    // File processing
-    juce::AudioFormatManager formatManager;
-    juce::String lastError;
-    FileProcessingManager mFileProcessingManager;
-    juce::File mInputFile;
-    juce::File mOutputDirectory;
-
-    juce::AudioBuffer<float> mInputBuffer;
-    juce::AudioBuffer<float> mProcessedBuffer;
+    juce::AudioBuffer<float> mInputBuffer     { kStorageChannels, kStorageSamples };
+    juce::AudioBuffer<float> mProcessedBuffer { kStorageChannels, kStorageSamples };
 
     juce::AudioProcessor::BusesProperties _getBusesProperties();
-
-    // File I/O helpers
-    bool readAudioFile(const juce::File& file, juce::AudioBuffer<float>& buffer,
-                        double& sampleRate, unsigned int& numChannels, unsigned int& bitsPerSample);
-    bool writeAudioFile(const juce::File& file, const juce::AudioBuffer<float>& buffer,
-                        double sampleRate, unsigned int numChannels, unsigned int bitsPerSample);
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerProcessor)

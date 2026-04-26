@@ -31,52 +31,73 @@ ActiveProcessor BufferProcessingManager::getActiveProcessor() const
 }
 
 //==============================================================================
-bool BufferProcessingManager::processBuffers(const juce::AudioBuffer<float>& inputBuffer,juce::AudioBuffer<float>& outputBuffer,
-    double sampleRate,int blockSize,std::function<void(float)> progressCallback)
+bool BufferProcessingManager::processBuffers(const juce::AudioBuffer<float>& inputStorage,
+                                              juce::AudioBuffer<float>&       outputStorage,
+                                              int    inputSampleCount,
+                                              int    outputSampleCount,
+                                              double sampleRate,
+                                              int    blockSize,
+                                              std::function<void(float)> progressCallback)
 {
     lastError.clear();
 
-    if (inputBuffer.getNumChannels() == 0 || inputBuffer.getNumSamples() == 0)
+    if (inputStorage.getNumChannels() == 0 || inputStorage.getNumSamples() == 0)
     {
-        lastError = "Input buffer is empty";
+        lastError = "Input storage buffer is empty";
         return false;
     }
 
-    if (outputBuffer.getNumChannels() == 0 || outputBuffer.getNumSamples() == 0)
+    if (outputStorage.getNumChannels() == 0 || outputStorage.getNumSamples() == 0)
     {
-        lastError = "Output buffer is not sized";
+        lastError = "Output storage buffer is not sized";
+        return false;
+    }
+
+    if (inputSampleCount < 0 || outputSampleCount <= 0)
+    {
+        lastError = "Invalid sample counts";
+        return false;
+    }
+
+    if (inputSampleCount  > inputStorage.getNumSamples()
+     || outputSampleCount > outputStorage.getNumSamples())
+    {
+        lastError = "Sample counts exceed storage capacity";
         return false;
     }
 
     mSwapper.prepareToPlay(sampleRate, blockSize);
 
-    juce::AudioBuffer<float> processBuffer(inputBuffer.getNumChannels(), blockSize);
+    const int numChannels = juce::jmin(inputStorage.getNumChannels(), outputStorage.getNumChannels());
+    juce::AudioBuffer<float> processBuffer(numChannels, blockSize);
     juce::MidiBuffer midiBuffer;
 
-    int totalSamples = inputBuffer.getNumSamples();
     int samplesProcessed = 0;
 
-    while (samplesProcessed < totalSamples)
+    while (samplesProcessed < outputSampleCount)
     {
-        int samplesToProcess = juce::jmin(blockSize, totalSamples - samplesProcessed);
+        const int samplesThisBlock = juce::jmin(blockSize, outputSampleCount - samplesProcessed);
 
         processBuffer.clear();
 
-        for (int ch = 0; ch < inputBuffer.getNumChannels(); ++ch)
-            processBuffer.copyFrom(ch, 0, inputBuffer, ch, samplesProcessed, samplesToProcess);
+        const int inputAvailable = juce::jmax(0, inputSampleCount - samplesProcessed);
+        const int inputToCopy    = juce::jmin(samplesThisBlock, inputAvailable);
+
+        if (inputToCopy > 0)
+        {
+            for (int ch = 0; ch < numChannels; ++ch)
+                processBuffer.copyFrom(ch, 0, inputStorage, ch, samplesProcessed, inputToCopy);
+        }
 
         mSwapper.processBlock(processBuffer, midiBuffer);
 
-        for (int ch = 0; ch < outputBuffer.getNumChannels(); ++ch)
-            outputBuffer.copyFrom(ch, samplesProcessed, processBuffer, ch, 0, samplesToProcess);
+        for (int ch = 0; ch < numChannels; ++ch)
+            outputStorage.copyFrom(ch, samplesProcessed, processBuffer, ch, 0, samplesThisBlock);
 
-        samplesProcessed += samplesToProcess;
+        samplesProcessed += samplesThisBlock;
 
         if (progressCallback)
-        {
-            float progress = (float)samplesProcessed / (float)totalSamples;
-            progressCallback(progress);
-        }
+            progressCallback(static_cast<float>(samplesProcessed) / static_cast<float>(outputSampleCount));
     }
 
     mSwapper.releaseResources();

@@ -21,7 +21,8 @@ JuceLibraryCode/
 Install/*
 
 # Test output
-TESTS/OUTPUT/
+TESTS/**/OUTPUT/*
+!TESTS/**/OUTPUT/.gitkeep
 RENDERED_AUDIO/
 
 # IDE configurations

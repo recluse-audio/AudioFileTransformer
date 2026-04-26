@@ -25,8 +25,8 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     outputLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(outputLabel);
 
-    auto defaultOutputDir = AudioFileTransformerProcessor::getDefaultOutputDirectory();
-    mProcessor.setOutputDirectory(defaultOutputDir);
+    auto defaultOutputDir = FileToBufferManager::getDefaultOutputDirectory();
+    mProcessor.getFileToBufferManager().setOutputDirectory(defaultOutputDir);
     outputPathLabel.setText(defaultOutputDir.getFullPathName(), juce::dontSendNotification);
     outputPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
     outputPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
@@ -167,8 +167,9 @@ void AudioFileTransformerEditor::resized()
 
 void AudioFileTransformerEditor::timerCallback()
 {
+    auto& fbm = mProcessor.getFileToBufferManager();
     // Update progress if processing
-    if (mProcessor.isFileProcessing())
+    if (fbm.isProcessing())
     {
         float progress = currentProgress.load();
         int percent = static_cast<int>(progress * 100.0f);
@@ -177,8 +178,8 @@ void AudioFileTransformerEditor::timerCallback()
     else if (currentProgress.load() > 0.0f)
     {
         // Processing just finished
-        bool success = mProcessor.wasFileProcessingSuccessful();
-        juce::String error = mProcessor.getFileProcessingError();
+        bool success = fbm.wasSuccessful();
+        juce::String error = fbm.getError();
 
         currentProgress.store(0.0f);
         processButton.setEnabled(true);
@@ -211,7 +212,7 @@ void AudioFileTransformerEditor::chooseInputFile()
         auto file = fc.getResult();
         if (file.existsAsFile())
         {
-            mProcessor.setInputFile(file);
+            mProcessor.getFileToBufferManager().setInputFile(file);
             inputPathLabel.setText(file.getFullPathName(), juce::dontSendNotification);
             updateProcessButtonState();
         }
@@ -222,7 +223,7 @@ void AudioFileTransformerEditor::chooseOutputDirectory()
 {
     fileChooser = std::make_unique<juce::FileChooser>(
         "Select output directory",
-        mProcessor.getOutputDirectory()
+        mProcessor.getFileToBufferManager().getOutputDirectory()
     );
 
     auto flags = juce::FileBrowserComponent::openMode
@@ -232,7 +233,7 @@ void AudioFileTransformerEditor::chooseOutputDirectory()
         auto dir = fc.getResult();
         if (dir.getFullPathName().isNotEmpty())
         {
-            mProcessor.setOutputDirectory(dir);
+            mProcessor.getFileToBufferManager().setOutputDirectory(dir);
             outputPathLabel.setText(dir.getFullPathName(), juce::dontSendNotification);
             updateProcessButtonState();
         }
@@ -246,19 +247,22 @@ void AudioFileTransformerEditor::processFile()
     statusLabel.setText("Processing... 0%", juce::dontSendNotification);
     statusLabel.setColour(juce::Label::textColourId, juce::Colours::lightblue);
 
-    mProcessor.startFileProcessing([this](float progress) {
+    auto& fbm = mProcessor.getFileToBufferManager();
+    fbm.setProgressCallback([this](float progress) {
         currentProgress.store(progress);
     });
+    fbm.startProcessing(mProcessor.getInputBuffer(),
+                        mProcessor.getProcessedBuffer(),
+                        mProcessor.getBufferProcessingManager());
 }
 
 void AudioFileTransformerEditor::setDefaultInputFile()
 {
-    // Get default input file from processor
-    auto defaultInputFile = AudioFileTransformerProcessor::getDefaultInputFile();
+    auto defaultInputFile = FileToBufferManager::getDefaultInputFile();
 
     if (defaultInputFile.existsAsFile())
     {
-        mProcessor.setInputFile(defaultInputFile);
+        mProcessor.getFileToBufferManager().setInputFile(defaultInputFile);
         inputPathLabel.setText(defaultInputFile.getFullPathName(), juce::dontSendNotification);
         updateProcessButtonState();
     }
@@ -266,9 +270,10 @@ void AudioFileTransformerEditor::setDefaultInputFile()
 
 void AudioFileTransformerEditor::updateProcessButtonState()
 {
-    bool canProcess = mProcessor.getInputFile().existsAsFile()
-                   && mProcessor.getOutputDirectory().getFullPathName().isNotEmpty()
-                   && !mProcessor.isFileProcessing();
+    auto& fbm = mProcessor.getFileToBufferManager();
+    bool canProcess = fbm.getInputFile().existsAsFile()
+                   && fbm.getOutputDirectory().getFullPathName().isNotEmpty()
+                   && ! fbm.isProcessing();
     processButton.setEnabled(canProcess);
 }
 

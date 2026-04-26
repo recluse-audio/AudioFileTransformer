@@ -1,9 +1,12 @@
 set(TEST_SOURCES
+    TESTS/BUFFER_PROCESSING_MANAGER/test_BufferProcessingManager.cpp
+    TESTS/BUFFER_PROCESSING_MANAGER/test_BufferProcessingManager_DataLogger.cpp
+    TESTS/FILE_TO_BUFFER_MANAGER/test_FileToBufferManager.cpp
+    TESTS/PLUGIN_PROCESSOR/test_Processor.cpp
+    TESTS/RD/test_BufferFiller_LoadOverload.cpp
+    TESTS/RD/test_BufferWriter_WriteOverload.cpp
+    TESTS/TD_PSOLA/test_TD_PSOLA.cpp
     TESTS/TEST_UTILS/TestUtils.cpp
     TESTS/TEST_UTILS/TestUtils.h
-    TESTS/test_BufferProcessingManager.cpp
-    TESTS/test_FileProcessing.cpp
-    TESTS/test_FileUtils.cpp
-    TESTS/test_Processor.cpp
-    TESTS/test_TD_PSOLA.cpp
+    TESTS/UTIL/test_FileUtils.cpp
 )

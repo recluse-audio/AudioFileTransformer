@@ -24,8 +24,13 @@ public:
     const RD_ProcessorSwapper& getSwapper() const { return mSwapper; }
 
     //==============================================================================
-    bool processBuffers(const juce::AudioBuffer<float>& inputBuffer, juce::AudioBuffer<float>& outputBuffer,
-        double sampleRate, int blockSize = 512, std::function<void(float)> progressCallback = nullptr );
+    bool processBuffers(const juce::AudioBuffer<float>& inputStorage,
+                        juce::AudioBuffer<float>&       outputStorage,
+                        int    inputSampleCount,
+                        int    outputSampleCount,
+                        double sampleRate,
+                        int    blockSize = 512,
+                        std::function<void(float)> progressCallback = nullptr);
 
     void processSingleBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiBuffer);
 

@@ -1,0 +1,62 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/29.3.6 Chrome/140.0.7339.249 Electron/38.8.0 Safari/537.36" version="29.3.6">
+  <diagram name="Page-1" id="-vyg7wW-iX25FJzLzm1a">
+    <mxGraphModel dx="555" dy="378" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="027uikuHTCXcVrNtpEKf-24" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="027uikuHTCXcVrNtpEKf-13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=7;" value="AudioFileTransformer" vertex="1">
+          <mxGeometry height="20" width="110" x="140" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-2" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;" value="RD_ProcessorSwapper" vertex="1">
+          <mxGeometry height="20" width="110" x="330" y="190" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-9" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;endArrow=none;endFill=0;dashed=1;fontSize=9;" target="027uikuHTCXcVrNtpEKf-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-3" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;" value="DataLogger" vertex="1">
+          <mxGeometry height="20" width="80" x="460" y="10" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-6" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.75;entryY=0;entryDx=0;entryDy=0;endArrow=none;endFill=0;dashed=1;fontSize=9;" target="027uikuHTCXcVrNtpEKf-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-4" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;" value="RD_Processor" vertex="1">
+          <mxGeometry height="20" width="85" x="405" y="110" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-14" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="027uikuHTCXcVrNtpEKf-1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-12" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=6;" value="AUDIO DATA IN FILE" vertex="1">
+          <mxGeometry height="20" width="70" x="20" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-19" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="027uikuHTCXcVrNtpEKf-16">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="150" y="140" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-13" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=7;" value="FileToBufferManager" vertex="1">
+          <mxGeometry height="20" width="85" x="90" y="90" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-22" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="027uikuHTCXcVrNtpEKf-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-16" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=7;" value=",mInputBuffer" vertex="1">
+          <mxGeometry height="20" width="55" x="105" y="140" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-23" edge="1" parent="1" source="027uikuHTCXcVrNtpEKf-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="027uikuHTCXcVrNtpEKf-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-26" connectable="0" parent="027uikuHTCXcVrNtpEKf-23" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="process()" vertex="1">
+          <mxGeometry relative="1" x="-0.2771" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="027uikuHTCXcVrNtpEKf-18" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fontSize=9;" value="&lt;font style=&quot;font-size: 7px;&quot;&gt;BufferProcessingManager&lt;/font&gt;" vertex="1">
+          <mxGeometry height="20" width="90" x="220" y="140" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

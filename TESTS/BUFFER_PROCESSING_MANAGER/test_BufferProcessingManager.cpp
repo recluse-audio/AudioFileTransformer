@@ -2,10 +2,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "TEST_UTILS/TestUtils.h"
-#include "../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
+#include "SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
 #include "Processor/BufferProcessingManager.h"
 
-#include "../SUBMODULES/RD/SOURCE/BufferFiller.h"
+#include "BufferFiller.h"
 
 
 TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][buffer]")
@@ -52,7 +52,7 @@ TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][b
 
     //================ Process With Gain Processor ==============================
     gainProcessor->setGain(0.5f);
-    bpManager.processBuffers(inputBuffer, outputBuffer, 44100.0, 512);
+    bpManager.processBuffers(inputBuffer, outputBuffer, numSamples, numSamples, 44100.0, 512);
     for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
         for (int ch = 0; ch < numChannels; ++ch)
         {
@@ -62,7 +62,7 @@ TEST_CASE("BufferProcessingManager initialization", "[BufferProcessingManager][b
     outputBuffer.clear();
 
     gainProcessor->setGain(0.314f);
-    bpManager.processBuffers(inputBuffer, outputBuffer, 44100.0, 512);
+    bpManager.processBuffers(inputBuffer, outputBuffer, numSamples, numSamples, 44100.0, 512);
     for (int sampleIndex = 0; sampleIndex < numSamples; ++sampleIndex)
         for (int ch = 0; ch < numChannels; ++ch)
         {

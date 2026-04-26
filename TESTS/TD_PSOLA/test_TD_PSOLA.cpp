@@ -215,7 +215,7 @@ TEST_CASE("TD_PSOLA - Process Female_Scale.wav and Compare to Golden", "[TD_PSOL
         projectRoot = currentDir.getParentDirectory();
 
     // Ensure TD_PSOLA output folder exists (don't delete - we want to keep each ratio's output)
-    juce::File tdPsolaOutputDir = projectRoot.getChildFile("TESTS/OUTPUT/TD_PSOLA");
+    juce::File tdPsolaOutputDir = projectRoot.getChildFile("TESTS/TD_PSOLA/OUTPUT");
     if (!tdPsolaOutputDir.exists())
     {
         tdPsolaOutputDir.createDirectory();
@@ -268,7 +268,7 @@ TEST_CASE("TD_PSOLA - Process Female_Scale.wav and Compare to Golden", "[TD_PSOL
         }
         juce::String baseName = "TD_PSOLA_" + ratioStr + "_441k_Vanilla";
 
-        juce::File outputDir = projectRoot.getChildFile("TESTS/OUTPUT/TD_PSOLA").getChildFile(baseName);
+        juce::File outputDir = projectRoot.getChildFile("TESTS/TD_PSOLA/OUTPUT").getChildFile(baseName);
 
         // Delete and recreate directory to ensure clean output for this ratio
         if (outputDir.exists())

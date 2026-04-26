@@ -1,5 +1,5 @@
 #include "TEST_UTILS/TestUtils.h"
-#include "../../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
+#include "SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
 #include "Processor/PluginProcessor.h"
 #include "BufferFiller.h"
 

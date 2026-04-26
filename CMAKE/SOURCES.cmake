@@ -3,8 +3,8 @@ set(SOURCES
     SOURCE/Components/PluginEditor.h
     SOURCE/Processor/BufferProcessingManager.cpp
     SOURCE/Processor/BufferProcessingManager.h
-    SOURCE/Processor/FileProcessingManager.cpp
-    SOURCE/Processor/FileProcessingManager.h
+    SOURCE/Processor/FileToBufferManager.cpp
+    SOURCE/Processor/FileToBufferManager.h
     SOURCE/Processor/PluginProcessor.cpp
     SOURCE/Processor/PluginProcessor.h
     SOURCE/TD_PSOLA/GrainExport.h
@@ -24,8 +24,8 @@ set(SOURCES
     SUBMODULES/RD/SOURCE/BufferWriter.h
     SUBMODULES/RD/SOURCE/CircularBuffer.cpp
     SUBMODULES/RD/SOURCE/CircularBuffer.h
-    SUBMODULES/RD/SOURCE/DATA_LOGGER/ProcessorDataLogger.cpp
-    SUBMODULES/RD/SOURCE/DATA_LOGGER/ProcessorDataLogger.h
+    SUBMODULES/RD/SOURCE/DATA_LOGGER/DataLogger.cpp
+    SUBMODULES/RD/SOURCE/DATA_LOGGER/DataLogger.h
     SUBMODULES/RD/SOURCE/EDITORS/GainEditor.cpp
     SUBMODULES/RD/SOURCE/EDITORS/GainEditor.h
     SUBMODULES/RD/SOURCE/EDITORS/GrainShifterEditor.cpp

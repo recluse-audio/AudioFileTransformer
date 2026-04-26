@@ -19,6 +19,26 @@ def regenerate_cmake_lists() -> None:
         print("Warning: regenSource.py not found, skipping regeneration")
 
 
+def clean_output_dirs(tests_root: Path) -> None:
+    if not tests_root.exists():
+        return
+    for output_dir in tests_root.rglob("OUTPUT"):
+        if not output_dir.is_dir():
+            continue
+        wiped = 0
+        for child in output_dir.iterdir():
+            if child.name == ".gitkeep":
+                continue
+            if child.is_dir():
+                import shutil
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+            wiped += 1
+        if wiped:
+            print(f"Wiped {wiped} item(s) from {output_dir}")
+
+
 def parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser()
     ap.add_argument(
@@ -26,6 +46,11 @@ def parse_args() -> argparse.Namespace:
         choices=["Debug", "Release"],
         default="Debug",
         help="Build config (default: Debug)",
+    )
+    ap.add_argument(
+        "--keep-output",
+        action="store_true",
+        help="Skip wiping TESTS/**/OUTPUT/ before build (default: wipe)",
     )
     return ap.parse_args()
 
@@ -37,6 +62,9 @@ def main() -> int:
     root = Path(__file__).resolve().parents[1]
     build_dir = root / "BUILD"
     build_dir.mkdir(parents=True, exist_ok=True)
+
+    if not args.keep_output:
+        clean_output_dirs(root / "TESTS")
 
     cmake = find_cmake()
     print(f"Using cmake: {cmake}")

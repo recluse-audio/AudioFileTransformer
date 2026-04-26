@@ -16,7 +16,9 @@
       "Bash(tasklist)",
       "Bash(python HELPER_SCRIPTS/build_tests.py)",
       "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' SUBMODULES/RD/CMAKE/SOURCES.cmake)",
-      "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' CMAKE/SOURCES.cmake)"
+      "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' CMAKE/SOURCES.cmake)",
+      "Bash(git mv *)",
+      "Bash(git rm *)"
     ]
   }
 }
