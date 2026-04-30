@@ -1,17 +1,24 @@
 #include "Processor/PluginProcessor.h"
 #include "Components/PluginEditor.h"
+#include "Util/FileUtils.h"
+#include "BufferWriter.h"
 
 //==============================================================================
 AudioFileTransformerProcessor::AudioFileTransformerProcessor()
-    : AudioProcessor(_getBusesProperties())
+    : RD_Processor()
 {
     mInputBuffer.clear();
     mProcessedBuffer.clear();
+
+    auto& swapper = mBufferProcessingManager.getSwapper();
+    swapper.setOutputDirectoryName (swapper.getName());
+    addChild (&swapper);
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()
 {
     mFileToBufferManager.stopProcessing();
+    removeChild (&mBufferProcessingManager.getSwapper());
 }
 
 //==============================================================================
@@ -81,6 +88,8 @@ void AudioFileTransformerProcessor::changeProgramName(int index, const juce::Str
 //==============================================================================
 void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
 {
+    RD_Processor::prepareToPlay(sampleRate, samplesPerBlock);
+
     mBufferProcessingManager.prepareToPlay(sampleRate, samplesPerBlock);
 
     if (auto* active = mBufferProcessingManager.getSwapper().getActiveProcessor())
@@ -90,6 +99,7 @@ void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samples
 void AudioFileTransformerProcessor::releaseResources()
 {
     mBufferProcessingManager.releaseResources();
+    RD_Processor::releaseResources();
 }
 
 bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const
@@ -111,7 +121,7 @@ bool AudioFileTransformerProcessor::isBusesLayoutSupported(const BusesLayout& la
     return true;
 }
 
-void AudioFileTransformerProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+void AudioFileTransformerProcessor::doProcessBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
     juce::ScopedNoDenormals noDenormals;
     juce::ignoreUnused(midiMessages);
@@ -165,11 +175,120 @@ ActiveProcessor AudioFileTransformerProcessor::getActiveProcessor() const
 }
 
 //==============================================================================
-juce::AudioProcessor::BusesProperties AudioFileTransformerProcessor::_getBusesProperties()
+bool AudioFileTransformerProcessor::transformFile (const juce::File& inputFile,
+                                                    const juce::File& outputFile,
+                                                    std::function<void(float)> progressCallback)
 {
-    return BusesProperties()
-        .withInput("Input", juce::AudioChannelSet::stereo(), true)
-        .withOutput("Output", juce::AudioChannelSet::stereo(), true);
+    mLastTransformError.clear();
+
+    juce::String validation;
+    if (! FileUtils::validateInputFile (inputFile, validation))
+    {
+        mLastTransformError = "Input invalid: " + validation;
+        return false;
+    }
+    if (! FileUtils::validateOutputPath (outputFile, validation))
+    {
+        mLastTransformError = "Output invalid: " + validation;
+        return false;
+    }
+
+    auto loadProgress = [progressCallback] (float p)
+    {
+        if (progressCallback) progressCallback (p * 0.33f);
+    };
+
+    double sampleRate    = 0.0;
+    int    numChannels   = 0;
+    int    samplesRead   = 0;
+    const int maxSamples = mInputBuffer.getNumSamples();
+
+    if (! FileUtils::loadWavIntoBuffer (inputFile, mInputBuffer, maxSamples,
+                                         sampleRate, numChannels, samplesRead, loadProgress))
+    {
+        mLastTransformError = "Failed to load WAV: " + inputFile.getFullPathName();
+        return false;
+    }
+    if (samplesRead <= 0)
+    {
+        mLastTransformError = "No samples read from input";
+        return false;
+    }
+
+    int    latencySamples = 0;
+    double tailSeconds    = 0.0;
+    if (auto* active = mBufferProcessingManager.getSwapper().getActiveProcessor())
+    {
+        latencySamples = active->getLatencySamples();
+        tailSeconds    = active->getTailLengthSeconds();
+    }
+    const int tailSamples       = static_cast<int> (tailSeconds * sampleRate);
+    const int outputSampleCount = juce::jmin (mProcessedBuffer.getNumSamples(),
+                                              samplesRead + latencySamples + tailSamples);
+
+    mProcessedBuffer.clear();
+
+    // If logging, cascade once before processing so child loggers sync parent
+    // dirs from this processor — required so per-block CSVs nest correctly.
+    if (getIsLogging())
+        logData();
+
+    auto processProgress = [progressCallback] (float p)
+    {
+        if (progressCallback) progressCallback (0.33f + p * 0.33f);
+    };
+
+    if (! mBufferProcessingManager.processBuffers (mInputBuffer,
+                                                    mProcessedBuffer,
+                                                    samplesRead,
+                                                    outputSampleCount,
+                                                    sampleRate,
+                                                    512,
+                                                    processProgress))
+    {
+        mLastTransformError = "Processing failed: " + mBufferProcessingManager.getLastError();
+        return false;
+    }
+
+    auto writeProgress = [progressCallback] (float p)
+    {
+        if (progressCallback) progressCallback (0.66f + p * 0.34f);
+    };
+
+    auto result = BufferWriter::writeToWav (mProcessedBuffer,
+                                            outputFile,
+                                            sampleRate,
+                                            outputSampleCount,
+                                            24,
+                                            writeProgress);
+    if (result != BufferWriter::Result::kSuccess)
+    {
+        mLastTransformError = "Failed to write WAV: " + outputFile.getFullPathName();
+        return false;
+    }
+
+    if (getIsLogging())
+        logData();
+
+    return true;
+}
+
+bool AudioFileTransformerProcessor::doFileTransform (std::function<void(float)> progressCallback)
+{
+    mLastTransformError.clear();
+
+    if (! createOutputDirectory())
+    {
+        mLastTransformError = "Failed to create processor output directory: "
+                              + getOutputDirectory().getFullPathName();
+        return false;
+    }
+
+    auto inputFile  = mFileToBufferManager.getInputFile();
+    auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
+    auto outputFile = getOutputDirectory().getChildFile (timestamp + ".wav");
+
+    return transformFile (inputFile, outputFile, std::move (progressCallback));
 }
 
 //==============================================================================

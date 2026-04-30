@@ -1,7 +1,6 @@
 #include "Processor/FileToBufferManager.h"
 #include "Processor/BufferProcessingManager.h"
 #include "Util/FileUtils.h"
-#include "BufferFiller.h"
 #include "BufferWriter.h"
 #include "PROCESSORS/GAIN/GainProcessor.h"
 #include "PROCESSORS/GRAIN/GrainShifterProcessor.h"
@@ -41,7 +40,7 @@ public:
                 mOwner.mProgressCallback(p * 0.33f);
         };
 
-        if (! BufferFiller::loadFromWavFile(mOwner.mInputFile,
+        if (! FileUtils::loadWavIntoBuffer(mOwner.mInputFile,
                                             mInputStorage,
                                             maxSamples,
                                             sampleRate,
@@ -157,13 +156,13 @@ bool FileToBufferManager::loadInputToBuffer(juce::AudioBuffer<float>& destBuffer
             mProgressCallback(p);
     };
 
-    bool ok = BufferFiller::loadFromWavFile(mInputFile,
-                                             destBuffer,
-                                             maxSamples,
-                                             sampleRateOut,
-                                             numChannelsRead,
-                                             samplesReadOut,
-                                             progress);
+    bool ok = FileUtils::loadWavIntoBuffer(mInputFile,
+                                            destBuffer,
+                                            maxSamples,
+                                            sampleRateOut,
+                                            numChannelsRead,
+                                            samplesReadOut,
+                                            progress);
     if (! ok)
         mError = "Failed to load WAV: " + mInputFile.getFullPathName();
 

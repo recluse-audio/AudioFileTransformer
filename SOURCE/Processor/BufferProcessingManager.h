@@ -40,6 +40,8 @@ public:
     juce::String getLastError() const { return lastError; }
 
 private:
+    void _refreshActiveLoggerChild();
+
     RD_ProcessorSwapper mSwapper;
     juce::String lastError = "-";
 

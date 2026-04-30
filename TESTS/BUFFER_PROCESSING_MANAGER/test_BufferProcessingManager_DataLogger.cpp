@@ -14,7 +14,7 @@
 //      TESTS/BUFFER_PROCESSING_MANAGER/OUTPUT/<TEST CASE NAME>/<timestamp>.
 //   2. Call swapper.createOutputDirectory(outputDir) once per test case.
 //   3. Per SECTION, create sectionDir under outputDir, then setOutputFile(sectionDir).
-//   4. setGlobalLoggingState(true) propagates to swapper + child processors.
+//   4. setIsLogging(true) on swapper enables its pre/post-process CSV writes.
 //   5. Run processBuffers; RD_Processor::processBlock writes pre/post CSVs per block.
 //   6. Log final state via createProcessorDataLogFile.
 
@@ -30,7 +30,6 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
     juce::File outputDir = juce::File::getCurrentWorkingDirectory()
                                .getChildFile ("TESTS/BUFFER_PROCESSING_MANAGER/OUTPUT/BufferProcessingManager processes all-ones buffer in 256-sample blocks with logging")
                                .getChildFile (timestamp);
-    swapper.createOutputDirectory (outputDir);
 
     const double sampleRate = 44100.0;
     const int    blockSize  = 256;
@@ -40,10 +39,11 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
 
     auto runSection = [&] (ActiveProcessor processorIndex, const juce::String& sectionName)
     {
-        auto sectionDir = outputDir.getChildFile (sectionName);
-        swapper.createOutputDirectory (sectionDir);
-        swapper.setOutputFile (sectionDir);
-        swapper.setGlobalLoggingState (true);
+        swapper.setParentDirectory (outputDir);
+        swapper.setOutputDirectoryName (sectionName);
+        swapper.createOutputDirectory();
+        auto sectionDir = swapper.getOutputDirectory();
+        swapper.setIsLogging (true);
 
         manager.setActiveProcessor (processorIndex);
 
@@ -62,7 +62,7 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
         REQUIRE(sectionDir.exists());
         REQUIRE(sectionDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories) > 0);
 
-        swapper.setGlobalLoggingState (false);
+        swapper.setIsLogging (false);
     };
 
     SECTION("Gain processor — all-ones, 256-block")

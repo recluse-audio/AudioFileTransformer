@@ -24,8 +24,24 @@ ctest
 # Build VST3 plugin
 python HELPER_SCRIPTS/build_vst3.py
 
+# Build AU plugin (macOS)
+python HELPER_SCRIPTS/build_au.py
+
 # Build standalone application
-python HELPER_SCRIPTS/build_app.py
+python HELPER_SCRIPTS/build_app.py        # or build_standalone.py
+
+# Full build (all formats)
+python HELPER_SCRIPTS/build_complete.py
+
+# Installer + signing + release
+python HELPER_SCRIPTS/build_installer.py
+python HELPER_SCRIPTS/sign_builds.py
+python HELPER_SCRIPTS/sign_installers.py
+python HELPER_SCRIPTS/release_workflow.py
+python HELPER_SCRIPTS/build_and_release_workflow.py
+
+# Bump version
+python HELPER_SCRIPTS/update_version.py VERSION.txt SOURCE/Util/Version.h
 ```
 
 **Note**: On Windows, builds default to Debug configuration. For Release builds, pass `--config Release` to the build scripts.
@@ -69,15 +85,16 @@ Active processor managed by `RD_ProcessorSwapper` (RD submodule), wrapped by `Bu
 
 ### File Processing Architecture
 
-The plugin supports offline file processing in addition to real-time audio:
+Offline file processing via `FileToBufferManager` (SOURCE/Processor/FileToBufferManager.h/cpp):
 
-- `FileProcessingManager` (SOURCE/Processor/FileProcessingManager.h/cpp) manages threaded file processing
-- Creates separate processor instances for offline processing to avoid conflicts with real-time audio
-- Supports progress callbacks via `std::function<void(float)>`
-- Processing happens asynchronously in a dedicated thread
-- Access via `startFileProcessing()`, `stopFileProcessing()`, and status query methods
+- Owns input file path, output dir path, progress callback (`std::function<void(float)>`), worker thread
+- Caller passes its `BufferProcessingManager` + storage buffers in — no separate processor instance
+- Sync helpers: `loadInputToBuffer(destBuffer, maxSamples, sampleRateOut, samplesReadOut)`, `writeBufferToFile(srcBuffer, outputFile, sampleRate, numSamplesToWrite)`
+- Async orchestration: `startProcessing(inputStorage, outputStorage, BufferProcessingManager&)` runs load → process → write on worker thread
+- State query: `isProcessing()`, `wasSuccessful()`, `getError()`
+- Path defaults: `getDefaultInputFile()`, `getDefaultOutputDirectory()`
 
-**Thread Safety**: The FileProcessingManager uses a separate thread and processor instance to ensure offline file processing doesn't interfere with real-time audio in the plugin editor.
+**Thread safety**: Caller must not invoke realtime `processBlock` against the same `BufferProcessingManager` while `startProcessing` thread runs.
 
 ### RD Submodule Integration
 
@@ -104,7 +121,7 @@ SOURCE/
 ├── Processor/
 │   ├── PluginProcessor.h/cpp        # Main plugin class
 │   ├── BufferProcessingManager.h/cpp# Wraps RD_ProcessorSwapper, drives realtime + chunked offline
-│   └── FileProcessingManager.h/cpp  # Threaded offline file I/O
+│   └── FileToBufferManager.h/cpp    # Threaded offline file I/O (load → process → write)
 ├── Components/
 │   └── PluginEditor.h/cpp           # GUI editor
 ├── TD_PSOLA/
@@ -114,6 +131,17 @@ SOURCE/
 │   ├── Juce_Header.h                # Central JUCE includes
 │   ├── Version.h                    # Auto-generated
 │   └── FileUtils.*
+
+TESTS/
+├── PLUGIN_PROCESSOR/                # test_Processor.cpp
+├── BUFFER_PROCESSING_MANAGER/       # test_BufferProcessingManager*.cpp
+├── FILE_TO_BUFFER_MANAGER/          # test_FileToBufferManager.cpp
+├── GOLDEN/                          # Golden reference assets (.wav/.csv/.txt) for regression
+├── RD/                              # RD submodule tests
+├── TD_PSOLA/                        # PSOLA tests
+├── UTIL/                            # util tests
+├── TEST_FILES/                      # input audio fixtures
+└── TEST_UTILS/                      # TestUtils.h/cpp shared helpers
 
 SUBMODULES/RD/SOURCE/                # Reusable audio utilities
 ├── PROCESSORS/
@@ -126,11 +154,13 @@ SUBMODULES/RD/SOURCE/                # Reusable audio utilities
 
 ### Testing Architecture
 
-Tests are in `TESTS/` using Catch2:
+Tests in `TESTS/` (Catch2), grouped per-component into subdirs (e.g. `TESTS/PLUGIN_PROCESSOR/`, `TESTS/BUFFER_PROCESSING_MANAGER/`, `TESTS/FILE_TO_BUFFER_MANAGER/`, `TESTS/RD/`, `TESTS/TD_PSOLA/`, `TESTS/UTIL/`). Per-test `OUTPUT/` dirs hold artifacts produced by runs.
 
 - `TEST_UTILS/TestUtils.h/cpp` provides audio testing utilities (sine wave generation, RMS calculation, silence detection)
 - Tests verify processor graph behavior by accessing nodes via `getGainNode()` and similar methods
 - Test naming convention: `test_<ComponentName>.cpp`
+- `TESTS/GOLDEN/` holds golden reference assets (`.wav` + `.csv` + `.txt`) for regression compare; tests load these and diff against fresh output
+- `TESTS/TEST_FILES/` holds input audio fixtures
 
 ## Version Management
 

@@ -4,6 +4,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include "../../SOURCE/Util/Juce_Header.h"
+#include "../../SUBMODULES/RD/TESTS/TEST_UTILS/TestUtils.h"
 
 /**
  * Test utilities for JUCE plugin testing.

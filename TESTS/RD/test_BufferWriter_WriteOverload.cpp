@@ -3,6 +3,7 @@
 #include "TEST_UTILS/TestUtils.h"
 #include "BufferWriter.h"
 #include "BufferFiller.h"
+#include "Util/FileUtils.h"
 
 #include <atomic>
 
@@ -41,7 +42,7 @@ TEST_CASE("BufferWriter write overload writes subset of buffer with progress",
         double srOut = 0.0;
         int    chsOut = 0;
         int    samplesOut = 0;
-        REQUIRE(BufferFiller::loadFromWavFile(outFile, roundtrip, bufferSamples,
+        REQUIRE(FileUtils::loadWavIntoBuffer(outFile, roundtrip, bufferSamples,
                                                srOut, chsOut, samplesOut));
         REQUIRE(samplesOut == numToWrite);
         REQUIRE(srOut == sampleRate);
@@ -58,7 +59,7 @@ TEST_CASE("BufferWriter write overload writes subset of buffer with progress",
         double srOut = 0.0;
         int    chsOut = 0;
         int    samplesOut = 0;
-        REQUIRE(BufferFiller::loadFromWavFile(outFile, roundtrip, bufferSamples * 2,
+        REQUIRE(FileUtils::loadWavIntoBuffer(outFile, roundtrip, bufferSamples * 2,
                                                srOut, chsOut, samplesOut));
         REQUIRE(samplesOut == bufferSamples);
     }

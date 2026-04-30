@@ -3,6 +3,30 @@
 #include "Processor/PluginProcessor.h"
 #include "BufferFiller.h"
 
+TEST_CASE("AudioFileTransformerProcessor name matches JucePlugin_Name", "[AudioFileTransformer][processor][name]")
+{
+    TestUtils::SetupAndTeardown setup;
+    AudioFileTransformerProcessor processor;
+
+    SECTION("getName returns JucePlugin_Name")
+    {
+        REQUIRE(processor.getName() == juce::String(JucePlugin_Name));
+    }
+
+    SECTION("getName equals expected product name")
+    {
+        REQUIRE(processor.getName() == juce::String("AudioFileTransformer"));
+    }
+
+    SECTION("getName is non-empty and stable across calls")
+    {
+        const auto first  = processor.getName();
+        const auto second = processor.getName();
+        REQUIRE(first.isNotEmpty());
+        REQUIRE(first == second);
+    }
+}
+
 TEST_CASE("AudioFileTransformerProcessor basic functionality", "[AudioFileTransformer][processor]")
 {
     TestUtils::SetupAndTeardown setup;

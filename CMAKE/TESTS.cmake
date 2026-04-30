@@ -2,6 +2,7 @@ set(TEST_SOURCES
     TESTS/BUFFER_PROCESSING_MANAGER/test_BufferProcessingManager.cpp
     TESTS/BUFFER_PROCESSING_MANAGER/test_BufferProcessingManager_DataLogger.cpp
     TESTS/FILE_TO_BUFFER_MANAGER/test_FileToBufferManager.cpp
+    TESTS/PLUGIN_PROCESSOR/test_AudioFileTransformerProcessor_DataLogger.cpp
     TESTS/PLUGIN_PROCESSOR/test_Processor.cpp
     TESTS/RD/test_BufferFiller_LoadOverload.cpp
     TESTS/RD/test_BufferWriter_WriteOverload.cpp

@@ -3,10 +3,11 @@
 #include "Util/Juce_Header.h"
 #include "Processor/BufferProcessingManager.h"
 #include "Processor/FileToBufferManager.h"
+#include "PROCESSORS/BASE/RD_Processor.h"
 #include "PROCESSORS/GAIN/GainProcessor.h"
 #include "PROCESSORS/GRAIN/GrainShifterProcessor.h"
 
-class AudioFileTransformerProcessor : public juce::AudioProcessor
+class AudioFileTransformerProcessor : public RD_Processor
 {
 public:
     AudioFileTransformerProcessor();
@@ -18,7 +19,7 @@ public:
 
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
 
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void doProcessBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
 
     //==============================================================================
     juce::AudioProcessorEditor* createEditor() override;
@@ -57,6 +58,23 @@ public:
     BufferProcessingManager& getBufferProcessingManager() { return mBufferProcessingManager; }
     FileToBufferManager&     getFileToBufferManager()     { return mFileToBufferManager; }
 
+    //==============================================================================
+    /** End-to-end synchronous file transform: load inputFile -> process -> write outputFile.
+     *  Uses mInputBuffer / mProcessedBuffer storage and the active processor in the swapper.
+     *  Returns false on any failure; lastError available via getLastTransformError().
+     */
+    bool transformFile (const juce::File& inputFile,
+                        const juce::File& outputFile,
+                        std::function<void(float)> progressCallback = nullptr);
+
+    /** Composes paths from stored DataLogger parent dir / output-dir name and the
+     *  FileToBufferManager input file, then calls transformFile.
+     *  Output WAV lands inside processor's getOutputDirectory().
+     */
+    bool doFileTransform (std::function<void(float)> progressCallback = nullptr);
+
+    juce::String getLastTransformError() const { return mLastTransformError; }
+
     juce::AudioBuffer<float>& getInputBuffer()     { return mInputBuffer; }
     juce::AudioBuffer<float>& getProcessedBuffer() { return mProcessedBuffer; }
 
@@ -72,10 +90,10 @@ private:
     BufferProcessingManager mBufferProcessingManager;
     FileToBufferManager     mFileToBufferManager;
 
+    juce::String mLastTransformError;
+
     juce::AudioBuffer<float> mInputBuffer     { kStorageChannels, kStorageSamples };
     juce::AudioBuffer<float> mProcessedBuffer { kStorageChannels, kStorageSamples };
-
-    juce::AudioProcessor::BusesProperties _getBusesProperties();
 
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(AudioFileTransformerProcessor)

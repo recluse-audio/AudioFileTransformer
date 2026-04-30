@@ -3,6 +3,7 @@
 #include "TEST_UTILS/TestUtils.h"
 #include "BufferFiller.h"
 #include "BufferWriter.h"
+#include "Util/FileUtils.h"
 
 #include <atomic>
 
@@ -40,7 +41,7 @@ TEST_CASE("BufferFiller load overload fills pre-sized buffer with progress",
         int    samplesRead    = 0;
         std::atomic<int> callbacks { 0 };
 
-        bool ok = BufferFiller::loadFromWavFile(wav, dest, destSamples,
+        bool ok = FileUtils::loadWavIntoBuffer(wav, dest, destSamples,
                                                 sampleRate, numChannelsRead, samplesRead,
                                                 [&](float){ callbacks.fetch_add(1); });
         REQUIRE(ok);
@@ -64,7 +65,7 @@ TEST_CASE("BufferFiller load overload fills pre-sized buffer with progress",
         double sampleRate     = 0.0;
         int    numChannelsRead = 0;
         int    samplesRead    = 0;
-        bool ok = BufferFiller::loadFromWavFile(wav, dest, cap,
+        bool ok = FileUtils::loadWavIntoBuffer(wav, dest, cap,
                                                 sampleRate, numChannelsRead, samplesRead);
         REQUIRE(ok);
         REQUIRE(samplesRead == cap);
@@ -81,7 +82,7 @@ TEST_CASE("BufferFiller load overload fills pre-sized buffer with progress",
         double sampleRate     = 0.0;
         int    numChannelsRead = 0;
         int    samplesRead    = 0;
-        bool ok = BufferFiller::loadFromWavFile(wav, dest, 8192,
+        bool ok = FileUtils::loadWavIntoBuffer(wav, dest, 8192,
                                                 sampleRate, numChannelsRead, samplesRead);
         REQUIRE(ok);
 
@@ -98,7 +99,7 @@ TEST_CASE("BufferFiller load overload fills pre-sized buffer with progress",
         double sampleRate     = 0.0;
         int    numChannelsRead = 0;
         int    samplesRead    = 0;
-        bool ok = BufferFiller::loadFromWavFile(juce::File("C:\\nope\\missing.wav"),
+        bool ok = FileUtils::loadWavIntoBuffer(juce::File("C:\\nope\\missing.wav"),
                                                 dest, 1024,
                                                 sampleRate, numChannelsRead, samplesRead);
         REQUIRE_FALSE(ok);

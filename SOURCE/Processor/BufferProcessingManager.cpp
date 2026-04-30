@@ -1,7 +1,31 @@
 #include "Processor/BufferProcessingManager.h"
+#include "PROCESSORS/BASE/RD_Processor.h"
 
-BufferProcessingManager::BufferProcessingManager() {}
-BufferProcessingManager::~BufferProcessingManager() {}
+BufferProcessingManager::BufferProcessingManager()
+{
+    _refreshActiveLoggerChild();
+}
+
+BufferProcessingManager::~BufferProcessingManager()
+{
+    if (auto* active = dynamic_cast<RD_Processor*> (mSwapper.getActiveProcessor()))
+        mSwapper.removeChild (active);
+}
+
+void BufferProcessingManager::_refreshActiveLoggerChild()
+{
+    for (int i = 0; i < mSwapper.getNumProcessors(); ++i)
+    {
+        if (auto* p = dynamic_cast<RD_Processor*> (mSwapper.getProcessorByIndex (static_cast<ActiveProcessor> (i))))
+            mSwapper.removeChild (p);
+    }
+
+    if (auto* active = dynamic_cast<RD_Processor*> (mSwapper.getActiveProcessor()))
+    {
+        active->setOutputDirectoryName (active->getName());
+        mSwapper.addChild (active);
+    }
+}
 
 //==============================================================================
 void BufferProcessingManager::prepareToPlay(double sampleRate, int samplesPerBlock)
@@ -23,6 +47,7 @@ void BufferProcessingManager::processSingleBlock(juce::AudioBuffer<float>& buffe
 void BufferProcessingManager::setActiveProcessor(ActiveProcessor processor)
 {
     mSwapper.setActiveProcessor(processor);
+    _refreshActiveLoggerChild();
 }
 
 ActiveProcessor BufferProcessingManager::getActiveProcessor() const

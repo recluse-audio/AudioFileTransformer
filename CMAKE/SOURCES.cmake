@@ -15,9 +15,10 @@ set(SOURCES
     SOURCE/Util/Juce_Header.h
     SOURCE/Util/Version.h
     SUBMODULES/RD/SOURCE/AudioFileHelpers.h
+    SUBMODULES/RD/SOURCE/BUFFER_FILLER/BufferFiller.cpp
+    SUBMODULES/RD/SOURCE/BUFFER_FILLER/BufferFiller.h
     SUBMODULES/RD/SOURCE/BlockAccumulator.cpp
     SUBMODULES/RD/SOURCE/BlockAccumulator.h
-    SUBMODULES/RD/SOURCE/BufferFiller.h
     SUBMODULES/RD/SOURCE/BufferHelper.h
     SUBMODULES/RD/SOURCE/BufferMath.h
     SUBMODULES/RD/SOURCE/BufferRange.h
