@@ -9,14 +9,14 @@
 //========================================================
 //===================== DATA LOGGING =====================
 //========================================================
-// Protocol mirrors RD/TESTS DataLogger convention:
-//   1. Build timestamped outputDir under
-//      TESTS/BUFFER_PROCESSING_MANAGER/OUTPUT/<TEST CASE NAME>/<timestamp>.
-//   2. Call swapper.createOutputDirectory(outputDir) once per test case.
-//   3. Per SECTION, create sectionDir under outputDir, then setOutputFile(sectionDir).
-//   4. setIsLogging(true) on swapper enables its pre/post-process CSV writes.
-//   5. Run processBuffers; RD_Processor::processBlock writes pre/post CSVs per block.
-//   6. Log final state via createProcessorDataLogFile.
+// Mirrors canonical RD pattern (see SUBMODULES/RD/TESTS/PROCESSORS/RD_PROCESSOR/test_RD_Processor_DataLogger.cpp):
+//   rootDir   = __FILE__/../OUTPUT/<TEST CASE NAME>/TEST_CASE_ROOT_DIR
+//   outputName= "DATA_LOG_OUTPUT_DIR"
+//   swapper.setDataLogRootDirectory(rootDir);
+//   swapper.setDataLogOutputName  (outputName);
+//   swapper.startLogging();   // deletes outputDir recursively, sets isLogging=true
+//   ... run work ...
+//   swapper.stopLogging();
 
 TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample blocks with logging",
           "[BufferProcessingManager][DataLogger]")
@@ -26,24 +26,24 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
 
     auto& swapper = manager.getSwapper();
 
-    auto timestamp = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    juce::File outputDir = juce::File::getCurrentWorkingDirectory()
-                               .getChildFile ("TESTS/BUFFER_PROCESSING_MANAGER/OUTPUT/BufferProcessingManager processes all-ones buffer in 256-sample blocks with logging")
-                               .getChildFile (timestamp);
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("BufferProcessingManager processes all-ones buffer in 256-sample blocks with logging")
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
 
-    const double sampleRate = 44100.0;
-    const int    blockSize  = 256;
+    const double sampleRate  = 44100.0;
+    const int    blockSize   = 256;
     const int    numChannels = 2;
     const int    numBlocks   = 4;
     const int    numSamples  = blockSize * numBlocks;
 
     auto runSection = [&] (ActiveProcessor processorIndex, const juce::String& sectionName)
     {
-        swapper.setParentDirectory (outputDir);
-        swapper.setOutputDirectoryName (sectionName);
-        swapper.createOutputDirectory();
-        auto sectionDir = swapper.getOutputDirectory();
-        swapper.setIsLogging (true);
+        const juce::String outputName = "DATA_LOG_OUTPUT_DIR_" + sectionName;
+
+        swapper.setDataLogRootDirectory (rootDir);
+        swapper.setDataLogOutputName    (outputName);
+        swapper.startLogging();
 
         manager.setActiveProcessor (processorIndex);
 
@@ -59,10 +59,12 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
         auto stateLog = swapper.createProcessorDataLogFile();
         REQUIRE(stateLog.existsAsFile());
 
+        auto sectionDir = swapper.getDataLogOutputDirectory();
+        REQUIRE(sectionDir == rootDir.getChildFile (outputName));
         REQUIRE(sectionDir.exists());
         REQUIRE(sectionDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories) > 0);
 
-        swapper.setIsLogging (false);
+        swapper.stopLogging();
     };
 
     SECTION("Gain processor — all-ones, 256-block")

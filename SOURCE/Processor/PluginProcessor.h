@@ -14,7 +14,7 @@ public:
     ~AudioFileTransformerProcessor() override;
 
     //==============================================================================
-    void prepareToPlay(double sampleRate, int samplesPerBlock) override;
+    void doPrepareToPlay(double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
 
     bool isBusesLayoutSupported(const BusesLayout& layouts) const override;
@@ -69,7 +69,7 @@ public:
 
     /** Composes paths from stored DataLogger parent dir / output-dir name and the
      *  FileToBufferManager input file, then calls transformFile.
-     *  Output WAV lands inside processor's getOutputDirectory().
+     *  Output WAV lands inside processor's getDataLogOutputDirectory().
      */
     bool doFileTransform (std::function<void(float)> progressCallback = nullptr);
 

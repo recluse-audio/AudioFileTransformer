@@ -73,15 +73,32 @@ When adding new source or test files:
 
 Active processor managed by `RD_ProcessorSwapper` (RD submodule), wrapped by `BufferProcessingManager`:
 
-- `AudioFileTransformerProcessor` (SOURCE/Processor/PluginProcessor.h) = main plugin class
-- Owns `BufferProcessingManager` which owns `RD_ProcessorSwapper`
+- `AudioFileTransformerProcessor` (SOURCE/Processor/PluginProcessor.h) inherits `RD_Processor` (RD submodule), not `juce::AudioProcessor` directly.
+- Owns `BufferProcessingManager` which owns `RD_ProcessorSwapper`. Also owns `FileToBufferManager` and storage buffers (`mInputBuffer`, `mProcessedBuffer`, sized 2ch × 60s @ 192 kHz).
 - `ActiveProcessor` = alias for `RD_ProcessorSwapper::ProcessorIndex`
 - Current processors: `GainProcessor`, `GrainShifterProcessor` (RD submodule)
-- Swap at runtime via `setActiveProcessor(ActiveProcessor)` — delegates to `BufferProcessingManager`
-- Realtime path: `processBlock` → `mBufferProcessingManager.processSingleBlock()`
-- Offline path: `BufferProcessingManager::processBuffers()` chunks input into block-sized segments
+- Swap at runtime via `setActiveProcessor(ActiveProcessor)` — delegates to `BufferProcessingManager::setActiveProcessor`, which also re-points the DataLogger child registration (see below).
+- Realtime path is silent: `doProcessBlock` clears the buffer (offline-only plugin).
+- Offline path: `BufferProcessingManager::processBuffers()` chunks input into block-sized segments via `mSwapper.processBlock`.
 
-**Adding new processor**: register inside `RD_ProcessorSwapper`, extend `ProcessorIndex`, add accessor on `PluginProcessor` mirroring `getGainNode()` / `getGrainShifterNode()`.
+**`RD_Processor` template-method contract**: `processBlock` and `prepareToPlay` are `final` on the base class. Subclasses (incl. `AudioFileTransformerProcessor`) must override `doProcessBlock` and `doPrepareToPlay` — never `processBlock`/`prepareToPlay`. The base wraps the child call with DataLogger lifecycle hooks.
+
+**Adding new processor**: subclass `RD_Processor`, override `doProcessBlock`/`doPrepareToPlay`, register inside `RD_ProcessorSwapper`, extend `ProcessorIndex`, add accessor on `PluginProcessor` mirroring `getGainNode()` / `getGrainShifterNode()`.
+
+### DataLogger Hierarchy
+
+`RD_Processor` and `RD_ProcessorSwapper` both inherit `DataLogger`. The plugin builds a parent/child logger chain so all data logs nest under one root:
+
+```
+AudioFileTransformerProcessor (root)
+  └─ RD_ProcessorSwapper          (added as child in PluginProcessor ctor)
+       └─ active RD_Processor     (added/removed by BufferProcessingManager::_refreshActiveLoggerChild)
+```
+
+- `BufferProcessingManager::setActiveProcessor` calls `_refreshActiveLoggerChild`, which removes any prior active processor from the swapper's child registry and adds the new active one (with `setDataLogOutputName(processor.getName())`). Only the currently active processor is a logger child of the swapper at any time.
+- `transformFile` calls `logData()` once before processing whenever `getIsLogging()` is true, to sync child parent dirs before per-block CSVs land. Calls `logData()` once again after writing.
+- Per-event subdirectory layout under each processor's output dir (`prepare_to_play/`, `process_block_start_<idx>/`, `process_block_end_<idx>/`) is documented in `SUBMODULES/RD/.claude/CLAUDE.md`. Read that file before touching DataLogger-related tests or output paths.
+- DataLogger root for the plugin defaults to `~/Documents/Recluse Audio/Data Logs/` (set inside DataLogger). Override per-test via `setDataLogRootDirectory`.
 
 ### File Processing Architecture
 
@@ -158,7 +175,7 @@ Tests in `TESTS/` (Catch2), grouped per-component into subdirs (e.g. `TESTS/PLUG
 
 - `TEST_UTILS/TestUtils.h/cpp` provides audio testing utilities (sine wave generation, RMS calculation, silence detection)
 - Tests verify processor graph behavior by accessing nodes via `getGainNode()` and similar methods
-- Test naming convention: `test_<ComponentName>.cpp`
+- Test naming convention: `test_<ComponentName>.cpp` for behavior, `test_<ComponentName>_DataLogger.cpp` for DataLogger output verification (separate file, tagged `[DataLogger]`)
 - `TESTS/GOLDEN/` holds golden reference assets (`.wav` + `.csv` + `.txt`) for regression compare; tests load these and diff against fresh output
 - `TESTS/TEST_FILES/` holds input audio fixtures
 
@@ -178,27 +195,27 @@ To update version: edit `VERSION.txt` and rebuild.
 
 ### Adding a New Audio Processor
 
-1. Subclass `juce::AudioProcessor` (ref: `GainProcessor`, `GrainShifterProcessor`)
+1. Subclass `RD_Processor` (NOT `juce::AudioProcessor` directly). Override `doProcessBlock` / `doPrepareToPlay`. Ref: `GainProcessor`, `GrainShifterProcessor`.
 2. Register in `RD_ProcessorSwapper` (RD submodule) — extend `ProcessorIndex`
 3. Expose accessor on `AudioFileTransformerProcessor` (mirror `getGainNode()`)
 4. Wire into `BufferProcessingManager` if special prepare/release needed
-5. Tests: `TESTS/test_Processor.cpp` and `TESTS/test_BufferProcessingManager.cpp` patterns
+5. Tests: `TESTS/PLUGIN_PROCESSOR/test_Processor.cpp` + per-component DataLogger test (`test_<Component>_DataLogger.cpp`) following the protocol in `SUBMODULES/RD/.claude/CLAUDE.md`
 
 **Switching Pattern**: `RD_ProcessorSwapper` owns all processors; only the active one's `processBlock` runs. No graph reconnection — swap is just an index change.
 
 ### Offline File Processing
 
-The plugin supports processing entire audio files offline:
+Plugin is offline-only. `doProcessBlock` clears the realtime buffer; all real work goes through the file transform path.
 
-1. Set paths: `setInputFile()`, `setOutputDirectory()`
-2. `startFileProcessing(progressCallback)` — async, returns immediately
-3. Progress callback receives float 0.0–1.0
-4. Poll `isFileProcessing()` / `wasFileProcessingSuccessful()`
-5. Errors: `getFileProcessingError()`
+Synchronous API on `AudioFileTransformerProcessor`:
 
-Or call `processFile(in, out, cb)` directly for synchronous one-shot.
+1. `transformFile(inputFile, outputFile, progressCallback)` — validates paths, loads WAV into `mInputBuffer`, runs `BufferProcessingManager::processBuffers`, writes 24-bit WAV via `BufferWriter::writeToWav`. Returns `bool`. Progress callback gets 0.0–1.0 across load/process/write thirds.
+2. `doFileTransform(progressCallback)` — composes `outputFile = getDataLogOutputDirectory() / "<timestamp>.wav"` from the processor's DataLogger output dir, pulls input from `mFileToBufferManager.getInputFile()`, then calls `transformFile`.
+3. Errors: `getLastTransformError()`.
 
-**Important**: FileProcessingManager creates a separate processor instance for offline work, so file processing and real-time audio don't interfere with each other.
+Storage buffers (`mInputBuffer`, `mProcessedBuffer`) are owned by the processor and reused — no separate processor instance for offline work. Caller must not invoke realtime `processBlock` against the same `BufferProcessingManager` while a transform is in flight (currently moot since realtime path is silent).
+
+`FileToBufferManager` still exposes async `startProcessing` / `isProcessing` / `wasSuccessful` / `getError` for direct use, but the plugin's top-level transform API is sync via `transformFile` / `doFileTransform`.
 
 ### Processor Graph Testing Pattern
 
@@ -208,7 +225,7 @@ Tests should:
 - Process through `processor.processBlock()`
 - Verify output using `TestUtils::calculateRMS()` or `TestUtils::isSilent()`
 
-Example from test_Processor.cpp:87-120 shows this pattern for gain verification.
+See `TESTS/PLUGIN_PROCESSOR/test_Processor.cpp` for the gain-verification pattern.
 
 ## Key Technical Details
 

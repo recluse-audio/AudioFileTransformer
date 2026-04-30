@@ -11,7 +11,7 @@ AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     mProcessedBuffer.clear();
 
     auto& swapper = mBufferProcessingManager.getSwapper();
-    swapper.setOutputDirectoryName (swapper.getName());
+    swapper.setDataLogOutputName (swapper.getName());
     addChild (&swapper);
 }
 
@@ -86,10 +86,8 @@ void AudioFileTransformerProcessor::changeProgramName(int index, const juce::Str
 }
 
 //==============================================================================
-void AudioFileTransformerProcessor::prepareToPlay(double sampleRate, int samplesPerBlock)
+void AudioFileTransformerProcessor::doPrepareToPlay(double sampleRate, int samplesPerBlock)
 {
-    RD_Processor::prepareToPlay(sampleRate, samplesPerBlock);
-
     mBufferProcessingManager.prepareToPlay(sampleRate, samplesPerBlock);
 
     if (auto* active = mBufferProcessingManager.getSwapper().getActiveProcessor())
@@ -277,16 +275,19 @@ bool AudioFileTransformerProcessor::doFileTransform (std::function<void(float)> 
 {
     mLastTransformError.clear();
 
-    if (! createOutputDirectory())
+    auto outputDir = getDataLogOutputDirectory();
+    auto createResult = outputDir.createDirectory();
+    if (createResult.failed())
     {
         mLastTransformError = "Failed to create processor output directory: "
-                              + getOutputDirectory().getFullPathName();
+                              + outputDir.getFullPathName()
+                              + " (" + createResult.getErrorMessage() + ")";
         return false;
     }
 
     auto inputFile  = mFileToBufferManager.getInputFile();
     auto timestamp  = juce::Time::getCurrentTime().formatted ("%Y-%m-%d_%H-%M-%S");
-    auto outputFile = getOutputDirectory().getChildFile (timestamp + ".wav");
+    auto outputFile = outputDir.getChildFile (timestamp + ".wav");
 
     return transformFile (inputFile, outputFile, std::move (progressCallback));
 }

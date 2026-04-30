@@ -22,7 +22,7 @@ void BufferProcessingManager::_refreshActiveLoggerChild()
 
     if (auto* active = dynamic_cast<RD_Processor*> (mSwapper.getActiveProcessor()))
     {
-        active->setOutputDirectoryName (active->getName());
+        active->setDataLogOutputName (active->getName());
         mSwapper.addChild (active);
     }
 }
