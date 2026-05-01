@@ -20,6 +20,8 @@ JuceLibraryCode/
 # Installation artifacts
 Install/*
 
+# Standalone output
+OUTPUT/*
 # Test output
 TESTS/**/OUTPUT/*
 !TESTS/**/OUTPUT/.gitkeep

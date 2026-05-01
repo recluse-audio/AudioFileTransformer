@@ -176,9 +176,42 @@ TEST_CASE("AudioFileTransformerProcessor doFileTransform with data logging casca
     REQUIRE(gainDir.isDirectory());
 
     // Active processor wrote pre/post-process CSVs from processBlock cascade.
-    juce::Array<juce::File> csvs;
-    gainDir.findChildFiles (csvs, juce::File::findFiles, true, "*.csv");
-    REQUIRE_FALSE(csvs.isEmpty());
+    // New layout: single accumulating input_samples.csv / output_samples.csv at the
+    // child's output dir root, appended once per processBlock. No per-block subdirs,
+    // no per-block processor_state.xml.
+    auto gainInCsv  = gainDir.getChildFile ("input_samples.csv");
+    auto gainOutCsv = gainDir.getChildFile ("output_samples.csv");
+    REQUIRE(gainInCsv .existsAsFile());
+    REQUIRE(gainOutCsv.existsAsFile());
+
+    constexpr int kDefaultBlockSize = 512; // BufferProcessingManager::processBuffers default
+    const int    numChannels        = 2;
+    const int    rowsPerBlock       = 2 + numChannels;
+    const int    expectedBlocks     = numSamples / kDefaultBlockSize;
+    const int    expectedRows       = rowsPerBlock * expectedBlocks;
+
+    auto countLines = [] (const juce::File& f)
+    {
+        return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+    };
+    REQUIRE(countLines (gainInCsv ) == expectedRows);
+    REQUIRE(countLines (gainOutCsv) == expectedRows);
+
+    // Ensure no stale per-block subdir/XML layout leaked back in.
+    juce::Array<juce::File> blockSubdirs;
+    gainDir.findChildFiles (blockSubdirs, juce::File::findDirectories, false, "process_block_*");
+    REQUIRE(blockSubdirs.isEmpty());
+    juce::Array<juce::File> rootXmls;
+    gainDir.findChildFiles (rootXmls, juce::File::findFiles, false, "processor_state.xml");
+    REQUIRE(rootXmls.isEmpty());
+
+    // Swapper itself wraps each chunk's processBlock — same accumulating layout at swapperDir.
+    auto swapperInCsv  = swapperDir.getChildFile ("input_samples.csv");
+    auto swapperOutCsv = swapperDir.getChildFile ("output_samples.csv");
+    REQUIRE(swapperInCsv .existsAsFile());
+    REQUIRE(swapperOutCsv.existsAsFile());
+    REQUIRE(countLines (swapperInCsv ) == expectedRows);
+    REQUIRE(countLines (swapperOutCsv) == expectedRows);
 
     processor.stopLogging();
     swapper.stopLogging();

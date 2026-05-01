@@ -13,6 +13,7 @@ AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     auto& swapper = mBufferProcessingManager.getSwapper();
     swapper.setDataLogOutputName (swapper.getName());
     addChild (&swapper);
+    setIsLogging (true);
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()
@@ -167,6 +168,7 @@ void AudioFileTransformerProcessor::setActiveProcessor(ActiveProcessor processor
     mBufferProcessingManager.setActiveProcessor(processor);
 }
 
+
 ActiveProcessor AudioFileTransformerProcessor::getActiveProcessor() const
 {
     return mBufferProcessingManager.getActiveProcessor();
@@ -177,6 +179,8 @@ bool AudioFileTransformerProcessor::transformFile (const juce::File& inputFile,
                                                     const juce::File& outputFile,
                                                     std::function<void(float)> progressCallback)
 {
+    
+    logData();
     mLastTransformError.clear();
 
     juce::String validation;

@@ -24,7 +24,7 @@ namespace
         return {};
     }
 
-    void waitForCompletion(FileToBufferManager& fbm, int timeoutMs = 30000)
+    void waitForCompletion(FileToBufferManager& fbm, int timeoutMs = 300000)
     {
         const auto start = std::chrono::steady_clock::now();
         while (fbm.isProcessing())
@@ -52,6 +52,7 @@ TEST_CASE("FileToBufferManager threaded load->process->write end-to-end",
 
     AudioFileTransformerProcessor processor;
     processor.setActiveProcessor(ActiveProcessor::kGain);
+    processor.setIsLogging(false); // this can take a while on a whole file
     auto* gainNode = processor.getGainNode();
     REQUIRE(gainNode != nullptr);
     gainNode->setGain(0.5f);

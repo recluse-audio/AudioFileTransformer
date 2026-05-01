@@ -62,7 +62,27 @@ TEST_CASE("BufferProcessingManager processes all-ones buffer in 256-sample block
         auto sectionDir = swapper.getDataLogOutputDirectory();
         REQUIRE(sectionDir == rootDir.getChildFile (outputName));
         REQUIRE(sectionDir.exists());
-        REQUIRE(sectionDir.getNumberOfChildFiles (juce::File::findFilesAndDirectories) > 0);
+
+        // New layout: single accumulating input_samples.csv / output_samples.csv at
+        // the swapper's output dir root, appended once per processBlock chunk.
+        auto inCsv  = sectionDir.getChildFile ("input_samples.csv");
+        auto outCsv = sectionDir.getChildFile ("output_samples.csv");
+        REQUIRE(inCsv .existsAsFile());
+        REQUIRE(outCsv.existsAsFile());
+
+        const int rowsPerBlock = 2 + numChannels;
+        const int expectedRows = rowsPerBlock * numBlocks;
+        auto countLines = [] (const juce::File& f)
+        {
+            return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+        };
+        REQUIRE(countLines (inCsv ) == expectedRows);
+        REQUIRE(countLines (outCsv) == expectedRows);
+
+        // No stale per-block subdir/XML layout.
+        juce::Array<juce::File> blockSubdirs;
+        sectionDir.findChildFiles (blockSubdirs, juce::File::findDirectories, false, "process_block_*");
+        REQUIRE(blockSubdirs.isEmpty());
 
         swapper.stopLogging();
     };
