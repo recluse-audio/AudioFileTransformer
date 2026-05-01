@@ -27,6 +27,7 @@ void BufferProcessingManager::_refreshActiveLoggerChild()
         // Mirror swapper's logging state onto the freshly-active child so per-block
         // CSVs fire when a swap happens after logging has been enabled.
         active->setIsLogging (mSwapper.getIsLogging());
+        active->setIsBlockLogging (mSwapper.getIsBlockLogging());
     }
 }
 

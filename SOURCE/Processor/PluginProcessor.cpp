@@ -14,6 +14,10 @@ AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     swapper.setDataLogOutputName (swapper.getName());
     addChild (&swapper);
     setIsLogging (true);
+
+    // Per-block CSV logging is opt-in: tests enable it via setIsBlockLogging(true).
+    // Disabling here cascades to swapper + active child.
+    setIsBlockLogging (false);
 }
 
 AudioFileTransformerProcessor::~AudioFileTransformerProcessor()

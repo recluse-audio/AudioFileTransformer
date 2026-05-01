@@ -6,6 +6,7 @@
 #include "Processor/PluginProcessor.h"
 #include "BufferWriter.h"
 #include "BufferFiller.h"
+#include "Util/FileUtils.h"
 
 //========================================================
 //===================== DATA LOGGING =====================
@@ -140,8 +141,10 @@ TEST_CASE("AudioFileTransformerProcessor doFileTransform with data logging casca
     processor.startLogging();
     swapper.startLogging();
     gainNode->startLogging();
+    processor.setIsBlockLogging (true);   // cascades to swapper + active child
 
     REQUIRE(processor.getIsLogging() == true);
+    REQUIRE(processor.getIsBlockLogging() == true);
 
     constexpr double sampleRate = 44100.0;
     constexpr int    numSamples = 4096;
@@ -210,6 +213,131 @@ TEST_CASE("AudioFileTransformerProcessor doFileTransform with data logging casca
     auto swapperOutCsv = swapperDir.getChildFile ("output_samples.csv");
     REQUIRE(swapperInCsv .existsAsFile());
     REQUIRE(swapperOutCsv.existsAsFile());
+    REQUIRE(countLines (swapperInCsv ) == expectedRows);
+    REQUIRE(countLines (swapperOutCsv) == expectedRows);
+
+    processor.stopLogging();
+    swapper.stopLogging();
+    gainNode->stopLogging();
+}
+
+TEST_CASE("AudioFileTransformerProcessor processes Somewhere_Stereo with logging at blockSize 1024",
+          "[AudioFileTransformerProcessor][DataLogger][file][Somewhere]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    // Locate the Somewhere stereo fixture (mirrors lookup pattern in test_FileToBufferManager.cpp).
+    std::vector<juce::File> candidates = {
+        juce::File::getCurrentWorkingDirectory().getChildFile ("TESTS/TEST_FILES/Somewhere_Stereo.wav"),
+        juce::File::getCurrentWorkingDirectory().getChildFile ("TESTS/TEST_FILES/Somewhere_Mono.wav"),
+        juce::File (__FILE__).getParentDirectory().getParentDirectory()
+                             .getChildFile ("TEST_FILES/Somewhere_Stereo.wav"),
+        juce::File (__FILE__).getParentDirectory().getParentDirectory()
+                             .getChildFile ("TEST_FILES/Somewhere_Mono.wav")
+    };
+    juce::File inputFile;
+    for (const auto& f : candidates)
+        if (f.existsAsFile()) { inputFile = f; break; }
+    REQUIRE(inputFile.existsAsFile());
+
+    AudioFileTransformerProcessor processor;
+
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("AudioFileTransformerProcessor processes Somewhere_Stereo with logging at blockSize 1024")
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
+
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
+
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+
+    processor.setActiveProcessor (ActiveProcessor::kGain);
+    auto* gainNode = processor.getGainNode();
+    REQUIRE(gainNode != nullptr);
+    gainNode->setGain (0.5f);
+
+    auto& swapper = processor.getBufferProcessingManager().getSwapper();
+    processor.startLogging();
+    swapper.startLogging();
+    gainNode->startLogging();
+    processor.setIsBlockLogging (true);
+    REQUIRE(processor.getIsLogging());
+    REQUIRE(processor.getIsBlockLogging());
+
+    auto processorOutputDir = processor.getDataLogOutputDirectory();
+
+    // Load full file into processor's input storage.
+    auto& inputBuffer  = processor.getInputBuffer();
+    auto& outputBuffer = processor.getProcessedBuffer();
+
+    double sampleRate  = 0.0;
+    int    numChannels = 0;
+    int    samplesRead = 0;
+    const int maxSamples = inputBuffer.getNumSamples();
+
+    REQUIRE(FileUtils::loadWavIntoBuffer (inputFile, inputBuffer, maxSamples,
+                                          sampleRate, numChannels, samplesRead));
+    REQUIRE(samplesRead > 0);
+
+    int    latencySamples = 0;
+    double tailSeconds    = 0.0;
+    if (auto* active = swapper.getActiveProcessor())
+    {
+        latencySamples = active->getLatencySamples();
+        tailSeconds    = active->getTailLengthSeconds();
+    }
+    const int tailSamples       = static_cast<int> (tailSeconds * sampleRate);
+    const int outputSampleCount = juce::jmin (outputBuffer.getNumSamples(),
+                                              samplesRead + latencySamples + tailSamples);
+    outputBuffer.clear();
+
+    // Cascade once before processing so child loggers sync parent dirs.
+    processor.logData();
+
+    constexpr int kBlockSize = 1024;
+    REQUIRE(processor.getBufferProcessingManager().processBuffers (inputBuffer,
+                                                                    outputBuffer,
+                                                                    samplesRead,
+                                                                    outputSampleCount,
+                                                                    sampleRate,
+                                                                    kBlockSize));
+
+    auto outputFile = processorOutputDir.getChildFile ("Somewhere_processed.wav");
+    REQUIRE(BufferWriter::writeToWav (outputBuffer, outputFile, sampleRate,
+                                      outputSampleCount, 24, nullptr)
+            == BufferWriter::Result::kSuccess);
+    REQUIRE(outputFile.existsAsFile());
+    REQUIRE(outputFile.getSize() > 0);
+
+    processor.logData();
+
+    // Swapper + gain dirs nest under processor output.
+    auto swapperDir = processorOutputDir.getChildFile (swapper.getName());
+    REQUIRE(swapperDir.isDirectory());
+    auto gainDir = swapperDir.getChildFile (gainNode->getName());
+    REQUIRE(gainDir.isDirectory());
+
+    auto gainInCsv     = gainDir.getChildFile ("input_samples.csv");
+    auto gainOutCsv    = gainDir.getChildFile ("output_samples.csv");
+    auto swapperInCsv  = swapperDir.getChildFile ("input_samples.csv");
+    auto swapperOutCsv = swapperDir.getChildFile ("output_samples.csv");
+    REQUIRE(gainInCsv    .existsAsFile());
+    REQUIRE(gainOutCsv   .existsAsFile());
+    REQUIRE(swapperInCsv .existsAsFile());
+    REQUIRE(swapperOutCsv.existsAsFile());
+
+    const int numChans          = outputBuffer.getNumChannels();
+    const int rowsPerBlock      = 2 + numChans;
+    const int expectedBlocks    = outputSampleCount / kBlockSize;
+    const int expectedRows      = rowsPerBlock * expectedBlocks;
+
+    auto countLines = [] (const juce::File& f)
+    {
+        return juce::StringArray::fromLines (f.loadFileAsString().trimEnd()).size();
+    };
+    REQUIRE(countLines (gainInCsv    ) == expectedRows);
+    REQUIRE(countLines (gainOutCsv   ) == expectedRows);
     REQUIRE(countLines (swapperInCsv ) == expectedRows);
     REQUIRE(countLines (swapperOutCsv) == expectedRows);
 
