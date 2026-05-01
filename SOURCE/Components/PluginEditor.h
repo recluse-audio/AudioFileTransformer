@@ -31,6 +31,8 @@ private:
     juce::TextButton processButton;
     juce::Label statusLabel;
 
+    juce::ToggleButton loggingToggle;
+
     // Processor selection
     juce::Label processorLabel;
     juce::ComboBox processorSelector;
@@ -48,6 +50,7 @@ private:
 
     // Processing state
     std::atomic<float> currentProgress { 0.0f };
+    bool               mWasProcessing  { false };
 
     // Button callbacks
     void chooseInputFile();

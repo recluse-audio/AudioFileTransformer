@@ -43,6 +43,18 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     processButton.setEnabled(false);
     addAndMakeVisible(processButton);
 
+    // Logging toggle
+    loggingToggle.setButtonText("Enable Data Logging");
+    loggingToggle.setToggleState(mProcessor.getIsLogging(), juce::dontSendNotification);
+    loggingToggle.onClick = [this]()
+    {
+        if (loggingToggle.getToggleState())
+            mProcessor.startLogging();
+        else
+            mProcessor.stopLogging();
+    };
+    addAndMakeVisible(loggingToggle);
+
     // Status label
     statusLabel.setText("Ready", juce::dontSendNotification);
     statusLabel.setJustificationType(juce::Justification::centred);
@@ -83,7 +95,7 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     configureParameterControlForProcessor(ActiveProcessor::kGrainShifter);
 
     // Set window size
-    setSize(600, 450);
+    setSize(600, 500);
 
     // Set default input file
     setDefaultInputFile();
@@ -159,7 +171,12 @@ void AudioFileTransformerEditor::resized()
     // Process button
     processButton.setBounds(bounds.removeFromTop(40).reduced(100, 0));
 
-    bounds.removeFromTop(20); // Spacing
+    bounds.removeFromTop(10); // Spacing
+
+    // Logging toggle
+    loggingToggle.setBounds(bounds.removeFromTop(25).reduced(100, 0));
+
+    bounds.removeFromTop(10); // Spacing
 
     // Status label
     statusLabel.setBounds(bounds.removeFromTop(30));
@@ -168,21 +185,24 @@ void AudioFileTransformerEditor::resized()
 void AudioFileTransformerEditor::timerCallback()
 {
     auto& fbm = mProcessor.getFileToBufferManager();
-    // Update progress if processing
-    if (fbm.isProcessing())
+    const bool nowProcessing = fbm.isProcessing();
+
+    if (nowProcessing)
     {
         float progress = currentProgress.load();
         int percent = static_cast<int>(progress * 100.0f);
         statusLabel.setText("Processing... " + juce::String(percent) + "%", juce::dontSendNotification);
     }
-    else if (currentProgress.load() > 0.0f)
+    else if (mWasProcessing)
     {
-        // Processing just finished
+        // Detected processing -> idle transition. Re-enable button regardless of
+        // whether progress callbacks ever fired (fast jobs can finish without
+        // any non-zero progress reaching the UI thread).
         bool success = fbm.wasSuccessful();
         juce::String error = fbm.getError();
 
         currentProgress.store(0.0f);
-        processButton.setEnabled(true);
+        updateProcessButtonState();
 
         if (success)
         {
@@ -195,6 +215,8 @@ void AudioFileTransformerEditor::timerCallback()
             statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
         }
     }
+
+    mWasProcessing = nowProcessing;
 }
 
 void AudioFileTransformerEditor::chooseInputFile()
@@ -251,9 +273,18 @@ void AudioFileTransformerEditor::processFile()
     fbm.setProgressCallback([this](float progress) {
         currentProgress.store(progress);
     });
-    fbm.startProcessing(mProcessor.getInputBuffer(),
-                        mProcessor.getProcessedBuffer(),
-                        mProcessor.getBufferProcessingManager());
+    const bool started = fbm.startProcessing(mProcessor.getInputBuffer(),
+                                             mProcessor.getProcessedBuffer(),
+                                             mProcessor.getBufferProcessingManager());
+    if (! started)
+    {
+        // Pre-thread validation failed: thread never set mIsProcessing=true,
+        // so the timer's processing->idle transition will not fire. Restore
+        // button state here.
+        statusLabel.setText("Error: " + fbm.getError(), juce::dontSendNotification);
+        statusLabel.setColour(juce::Label::textColourId, juce::Colours::red);
+        updateProcessButtonState();
+    }
 }
 
 void AudioFileTransformerEditor::setDefaultInputFile()
