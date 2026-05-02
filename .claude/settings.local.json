@@ -18,7 +18,8 @@
       "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' SUBMODULES/RD/CMAKE/SOURCES.cmake)",
       "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' CMAKE/SOURCES.cmake)",
       "Bash(git mv *)",
-      "Bash(git rm *)"
+      "Bash(git rm *)",
+      "Bash(git *)"
     ]
   }
 }
