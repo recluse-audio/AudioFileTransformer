@@ -25,8 +25,10 @@ private:
     juce::TextButton chooseInputButton;
 
     juce::Label outputLabel;
-    juce::Label outputPathLabel;
-    juce::TextButton chooseOutputButton;
+    juce::Label rootPathLabel;
+    juce::TextButton chooseRootButton;
+    juce::Label outputNameLabel;
+    juce::TextEditor outputNameEditor;
 
     juce::TextButton processButton;
     juce::Label statusLabel;
@@ -70,7 +72,9 @@ private:
 
     // Button callbacks
     void chooseInputFile();
-    void chooseOutputDirectory();
+    void chooseRootDirectory();
+    void applyOutputName();
+    void syncOutputDirsToUi();
     void processFile();
     void processorSelectionChanged();
 

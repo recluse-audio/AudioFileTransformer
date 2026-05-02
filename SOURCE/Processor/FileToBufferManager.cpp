@@ -213,7 +213,7 @@ bool FileToBufferManager::startProcessing(juce::AudioBuffer<float>& inputStorage
     }
 
     auto timestamp = juce::Time::getCurrentTime().formatted("%Y-%m-%d_%H-%M-%S");
-    auto runDir    = mOutputDirectory.getChildFile(timestamp);
+    auto runDir    = mOutputDirectory;
     auto createResult = runDir.createDirectory();
     if (createResult.failed())
     {

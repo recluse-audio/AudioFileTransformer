@@ -20,22 +20,39 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     chooseInputButton.onClick = [this]() { chooseInputFile(); };
     addAndMakeVisible(chooseInputButton);
 
-    // Output directory section
-    outputLabel.setText("Output Directory:", juce::dontSendNotification);
+    // Output section: Root directory chooser + per-transform folder name editor.
+    // Output dir is composed as Root / Name and aligned to the processor's
+    // DataLogger so audio output and data logs land together.
+    outputLabel.setText("Output:", juce::dontSendNotification);
     outputLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(outputLabel);
 
-    auto defaultOutputDir = FileToBufferManager::getDefaultOutputDirectory();
-    mProcessor.getFileToBufferManager().setOutputDirectory(defaultOutputDir);
-    outputPathLabel.setText(defaultOutputDir.getFullPathName(), juce::dontSendNotification);
-    outputPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
-    outputPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
-    outputPathLabel.setJustificationType(juce::Justification::centredLeft);
-    addAndMakeVisible(outputPathLabel);
+    auto defaultRootDir = FileToBufferManager::getDefaultOutputDirectory();
+    mProcessor.setDataLogRootDirectory(defaultRootDir);
 
-    chooseOutputButton.setButtonText("Choose Output Dir...");
-    chooseOutputButton.onClick = [this]() { chooseOutputDirectory(); };
-    addAndMakeVisible(chooseOutputButton);
+    rootPathLabel.setText(defaultRootDir.getFullPathName(), juce::dontSendNotification);
+    rootPathLabel.setColour(juce::Label::backgroundColourId, juce::Colours::darkgrey);
+    rootPathLabel.setColour(juce::Label::textColourId, juce::Colours::white);
+    rootPathLabel.setJustificationType(juce::Justification::centredLeft);
+    addAndMakeVisible(rootPathLabel);
+
+    chooseRootButton.setButtonText("Choose Root...");
+    chooseRootButton.onClick = [this]() { chooseRootDirectory(); };
+    addAndMakeVisible(chooseRootButton);
+
+    outputNameLabel.setText("Folder Name:", juce::dontSendNotification);
+    outputNameLabel.setFont(juce::Font(13.0f, juce::Font::bold));
+    addAndMakeVisible(outputNameLabel);
+
+    outputNameEditor.setText(mProcessor.getDataLogOutputName(), juce::dontSendNotification);
+    outputNameEditor.setColour(juce::TextEditor::backgroundColourId, juce::Colours::black);
+    outputNameEditor.setColour(juce::TextEditor::textColourId,       juce::Colours::white);
+    outputNameEditor.onTextChange  = [this]() { applyOutputName(); };
+    outputNameEditor.onReturnKey   = [this]() { applyOutputName(); };
+    outputNameEditor.onFocusLost   = [this]() { applyOutputName(); };
+    addAndMakeVisible(outputNameEditor);
+
+    syncOutputDirsToUi();
 
     // Process button
     processButton.setButtonText("Process File");
@@ -232,12 +249,18 @@ void AudioFileTransformerEditor::resized()
 
     bounds.removeFromTop(20); // Spacing
 
-    // Output file section
+    // Output section: Root path + chooser, then Name label + editor.
     outputLabel.setBounds(bounds.removeFromTop(28));
-    auto outputRow = bounds.removeFromTop(40);
-    chooseOutputButton.setBounds(outputRow.removeFromRight(180));
-    outputRow.removeFromRight(15); // Spacing
-    outputPathLabel.setBounds(outputRow);
+    auto rootRow = bounds.removeFromTop(40);
+    chooseRootButton.setBounds(rootRow.removeFromRight(180));
+    rootRow.removeFromRight(15);
+    rootPathLabel.setBounds(rootRow);
+
+    bounds.removeFromTop(8);
+    auto nameRow = bounds.removeFromTop(32);
+    outputNameLabel .setBounds(nameRow.removeFromLeft(110));
+    nameRow.removeFromLeft(8);
+    outputNameEditor.setBounds(nameRow);
 
     bounds.removeFromTop(20); // Spacing
 
@@ -351,11 +374,11 @@ void AudioFileTransformerEditor::chooseInputFile()
     });
 }
 
-void AudioFileTransformerEditor::chooseOutputDirectory()
+void AudioFileTransformerEditor::chooseRootDirectory()
 {
     fileChooser = std::make_unique<juce::FileChooser>(
-        "Select output directory",
-        mProcessor.getFileToBufferManager().getOutputDirectory()
+        "Select output root directory",
+        mProcessor.getDataLogRootDirectory()
     );
 
     auto flags = juce::FileBrowserComponent::openMode
@@ -365,11 +388,30 @@ void AudioFileTransformerEditor::chooseOutputDirectory()
         auto dir = fc.getResult();
         if (dir.getFullPathName().isNotEmpty())
         {
-            mProcessor.getFileToBufferManager().setOutputDirectory(dir);
-            outputPathLabel.setText(dir.getFullPathName(), juce::dontSendNotification);
+            mProcessor.setDataLogRootDirectory(dir);
+            rootPathLabel.setText(dir.getFullPathName(), juce::dontSendNotification);
+            syncOutputDirsToUi();
             updateProcessButtonState();
         }
     });
+}
+
+void AudioFileTransformerEditor::applyOutputName()
+{
+    auto name = outputNameEditor.getText().trim();
+    if (name.isEmpty())
+        return;
+    mProcessor.setDataLogOutputName(name);
+    syncOutputDirsToUi();
+    updateProcessButtonState();
+}
+
+void AudioFileTransformerEditor::syncOutputDirsToUi()
+{
+    // Mirror the processor's composed DataLogger output dir (Root/Name) onto
+    // the FileToBufferManager so the rendered WAV lands beside the data logs.
+    mProcessor.getFileToBufferManager().setOutputDirectory(
+        mProcessor.getDataLogOutputDirectory());
 }
 
 void AudioFileTransformerEditor::processFile()

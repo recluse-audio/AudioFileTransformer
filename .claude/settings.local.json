@@ -19,7 +19,11 @@
       "Bash(grep -c '\\\\.\\\\\\(cpp\\\\|h\\\\\\)$' CMAKE/SOURCES.cmake)",
       "Bash(git mv *)",
       "Bash(git rm *)",
-      "Bash(git *)"
+      "Bash(git *)",
+      "Bash(awk -F',' 'NR>1 { dur=$11; sp=$9; synp=$10; if \\(dur != 2*sp+1 && dur != 2*sp\\) print NR\": dur=\"dur\" src_per=\"sp\" syn_per=\"synp; }' \"c:/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/OUTPUT/AudioFileTransformer_0/RD Processor Swapper/Grain Shifter/granulator/synthesis_grains.csv\")",
+      "Bash(awk -F',' 'NR>1 { sp=$9; synp=$10; r=synp/sp; if \\(r>2.0 || r<0.5\\) print NR\": src_per=\"sp\" syn_per=\"synp\" ratio=\"r\" src_id=\"$1; }' \"c:/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/OUTPUT/AudioFileTransformer_0/RD Processor Swapper/Grain Shifter/granulator/synthesis_grains.csv\")",
+      "Bash(awk -F',' 'NR>2 { id=$1; if \\(id < prev\\) print NR\": id=\"id\" prev=\"prev; prev=id }' \"c:/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/OUTPUT/AudioFileTransformer_0/RD Processor Swapper/Grain Shifter/granulator/synthesis_grains.csv\")",
+      "Bash(awk -F',' 'NR>2 { id=$1; if \\(id == prev\\) print NR\": id=\"id; prev=id }' \"c:/REPOS/PLUGIN_PROJECTS/AudioFileTransformer/OUTPUT/AudioFileTransformer_0/RD Processor Swapper/Grain Shifter/granulator/synthesis_grains.csv\")"
     ]
   }
 }
