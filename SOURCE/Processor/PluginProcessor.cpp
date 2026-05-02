@@ -10,6 +10,10 @@ AudioFileTransformerProcessor::AudioFileTransformerProcessor()
     mInputBuffer.clear();
     mProcessedBuffer.clear();
 
+    // Stable outputName — default is construction timestamp, which moves every
+    // plugin instantiation. Pin to processor name so the log dir stays predictable.
+    setDataLogOutputName (getName());
+
     auto& swapper = mBufferProcessingManager.getSwapper();
     swapper.setDataLogOutputName (swapper.getName());
     addChild (&swapper);
@@ -249,7 +253,7 @@ bool AudioFileTransformerProcessor::transformFile (const juce::File& inputFile,
                                                     samplesRead,
                                                     outputSampleCount,
                                                     sampleRate,
-                                                    512,
+                                                    mBufferProcessingManager.getBlockSize(),
                                                     processProgress))
     {
         mLastTransformError = "Processing failed: " + mBufferProcessingManager.getLastError();

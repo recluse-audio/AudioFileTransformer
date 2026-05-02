@@ -55,6 +55,100 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     };
     addAndMakeVisible(loggingToggle);
 
+    // Per-block CSV logging toggle — independent of main logging flag.
+    // Cascades through RD_Processor children only (swapper + active processor);
+    // PitchManager / Granulator are unaffected.
+    blockLoggingToggle.setButtonText("Per-Block CSV Logging");
+    blockLoggingToggle.setToggleState(mProcessor.getIsBlockLogging(), juce::dontSendNotification);
+    blockLoggingToggle.onClick = [this]()
+    {
+        mProcessor.setIsBlockLogging(blockLoggingToggle.getToggleState());
+    };
+    addAndMakeVisible(blockLoggingToggle);
+
+    // Block-size selector — powers of 2, 32..4096.
+    blockSizeLabel.setText("Block Size:", juce::dontSendNotification);
+    blockSizeLabel.setFont(juce::Font(14.0f, juce::Font::bold));
+    addAndMakeVisible(blockSizeLabel);
+
+    {
+        const int currentBlockSize = mProcessor.getBufferProcessingManager().getBlockSize();
+        int idToSelect = 0;
+        for (int v = 32, id = 1; v <= 4096; v <<= 1, ++id)
+        {
+            blockSizeSelector.addItem(juce::String(v), id);
+            if (v == currentBlockSize) idToSelect = id;
+        }
+        if (idToSelect == 0) idToSelect = 5; // 512 fallback
+        blockSizeSelector.setSelectedId(idToSelect, juce::dontSendNotification);
+    }
+    blockSizeSelector.onChange = [this]()
+    {
+        const int chosen = blockSizeSelector.getText().getIntValue();
+        mProcessor.getBufferProcessingManager().setBlockSize(chosen);
+    };
+    addAndMakeVisible(blockSizeSelector);
+
+    // GrainShifter parameter controls — name on top, value box, horizontal slider.
+    auto setupParamSlider = [this] (juce::Slider& s, juce::Label& nameLbl, juce::Label& valLbl,
+                                    const juce::String& name)
+    {
+        nameLbl.setText(name, juce::dontSendNotification);
+        nameLbl.setFont(juce::Font(13.0f, juce::Font::bold));
+        nameLbl.setJustificationType(juce::Justification::centred);
+        addAndMakeVisible(nameLbl);
+
+        valLbl.setColour(juce::Label::backgroundColourId, juce::Colours::black);
+        valLbl.setColour(juce::Label::textColourId,       juce::Colours::white);
+        valLbl.setJustificationType(juce::Justification::centred);
+        addAndMakeVisible(valLbl);
+
+        s.setSliderStyle(juce::Slider::LinearHorizontal);
+        s.setTextBoxStyle(juce::Slider::NoTextBox, true, 0, 0);
+        addAndMakeVisible(s);
+    };
+
+    setupParamSlider(pitchWindowSlider,    pitchWindowLabel,    pitchWindowValueLabel,    "Pitch Window Size");
+    setupParamSlider(pitchHopSlider,       pitchHopLabel,       pitchHopValueLabel,       "Pitch Hop Size");
+    setupParamSlider(pitchThresholdSlider, pitchThresholdLabel, pitchThresholdValueLabel, "Detection Threshold");
+
+    // Window/hop are AudioParameterChoice (powers of 2). SliderAttachment maps slider
+    // value to choice index — lock to integer step. textFromValueFunction renders the
+    // actual sample-count integer (not the index).
+    static const juce::StringArray kWindowChoices { "512", "1024", "2048", "4096", "8192" };
+    static const juce::StringArray kHopChoices    { "256", "512", "1024", "2048", "4096" };
+
+    pitchWindowSlider.setRange(0.0, (double) (kWindowChoices.size() - 1), 1.0);
+    pitchWindowSlider.textFromValueFunction = [] (double v)
+    {
+        const int idx = juce::jlimit(0, kWindowChoices.size() - 1, (int) std::round(v));
+        return kWindowChoices[idx];
+    };
+    pitchWindowSlider.onValueChange = [this]()
+    {
+        pitchWindowValueLabel.setText(pitchWindowSlider.getTextFromValue(pitchWindowSlider.getValue()),
+                                      juce::dontSendNotification);
+    };
+
+    pitchHopSlider.setRange(0.0, (double) (kHopChoices.size() - 1), 1.0);
+    pitchHopSlider.textFromValueFunction = [] (double v)
+    {
+        const int idx = juce::jlimit(0, kHopChoices.size() - 1, (int) std::round(v));
+        return kHopChoices[idx];
+    };
+    pitchHopSlider.onValueChange = [this]()
+    {
+        pitchHopValueLabel.setText(pitchHopSlider.getTextFromValue(pitchHopSlider.getValue()),
+                                   juce::dontSendNotification);
+    };
+
+    pitchThresholdSlider.setRange(0.0, 1.0, 0.01);
+    pitchThresholdSlider.onValueChange = [this]()
+    {
+        pitchThresholdValueLabel.setText(juce::String(pitchThresholdSlider.getValue(), 2),
+                                         juce::dontSendNotification);
+    };
+
     // Status label
     statusLabel.setText("Ready", juce::dontSendNotification);
     statusLabel.setJustificationType(juce::Justification::centred);
@@ -78,7 +172,7 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     parameterLabel.setFont(juce::Font(14.0f, juce::Font::bold));
     addAndMakeVisible(parameterLabel);
 
-    parameterSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    parameterSlider.setSliderStyle(juce::Slider::LinearHorizontal);
     parameterSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);
     parameterSlider.onValueChange = [this]() { updateParameterValueLabel(); };
     addAndMakeVisible(parameterSlider);
@@ -95,7 +189,7 @@ AudioFileTransformerEditor::AudioFileTransformerEditor(AudioFileTransformerProce
     configureParameterControlForProcessor(ActiveProcessor::kGrainShifter);
 
     // Set window size
-    setSize(600, 500);
+    setSize(900, 800);
 
     // Set default input file
     setDefaultInputFile();
@@ -126,60 +220,76 @@ void AudioFileTransformerEditor::paint(juce::Graphics& g)
 
 void AudioFileTransformerEditor::resized()
 {
-    auto bounds = getLocalBounds().reduced(20);
-    bounds.removeFromTop(50); // Space for title
+    auto bounds = getLocalBounds().reduced(30);
+    bounds.removeFromTop(60); // Space for title
 
     // Input file section
-    inputLabel.setBounds(bounds.removeFromTop(25));
-    auto inputRow = bounds.removeFromTop(30);
-    chooseInputButton.setBounds(inputRow.removeFromRight(120));
-    inputRow.removeFromRight(10); // Spacing
+    inputLabel.setBounds(bounds.removeFromTop(28));
+    auto inputRow = bounds.removeFromTop(40);
+    chooseInputButton.setBounds(inputRow.removeFromRight(180));
+    inputRow.removeFromRight(15); // Spacing
     inputPathLabel.setBounds(inputRow);
 
     bounds.removeFromTop(20); // Spacing
 
     // Output file section
-    outputLabel.setBounds(bounds.removeFromTop(25));
-    auto outputRow = bounds.removeFromTop(30);
-    chooseOutputButton.setBounds(outputRow.removeFromRight(120));
-    outputRow.removeFromRight(10); // Spacing
+    outputLabel.setBounds(bounds.removeFromTop(28));
+    auto outputRow = bounds.removeFromTop(40);
+    chooseOutputButton.setBounds(outputRow.removeFromRight(180));
+    outputRow.removeFromRight(15); // Spacing
     outputPathLabel.setBounds(outputRow);
 
     bounds.removeFromTop(20); // Spacing
 
-    // Processor selection
-    processorLabel.setBounds(bounds.removeFromTop(25));
-    auto processorRow = bounds.removeFromTop(30);
-    processorSelector.setBounds(processorRow.removeFromLeft(300));
+    // Processor selection + Process button + block size + status, all in one row.
+    processorLabel.setBounds(bounds.removeFromTop(28));
+    auto processorRow = bounds.removeFromTop(40);
+    processorSelector.setBounds(processorRow.removeFromLeft(220));
+    processorRow.removeFromLeft(15);
+    processButton    .setBounds(processorRow.removeFromLeft(120));
+    processorRow.removeFromLeft(15);
+    blockSizeLabel   .setBounds(processorRow.removeFromLeft(80));
+    blockSizeSelector.setBounds(processorRow.removeFromLeft(100));
+    processorRow.removeFromLeft(15);
+    statusLabel      .setBounds(processorRow);
 
     bounds.removeFromTop(20); // Spacing
 
-    // Parameter control (unified for both processors)
-    parameterLabel.setBounds(bounds.removeFromTop(25));
-    auto parameterRow = bounds.removeFromTop(80);
+    // Parameter control (unified for both processors) — horizontal linear slider.
+    parameterLabel.setBounds(bounds.removeFromTop(28));
+    auto parameterRow = bounds.removeFromTop(40);
+    parameterValueLabel.setBounds(parameterRow.removeFromRight(120));
+    parameterRow.removeFromRight(15);
+    parameterSlider    .setBounds(parameterRow);
 
-    // Center the knob and value label
-    auto knobArea = parameterRow.removeFromLeft(100);
-    parameterSlider.setBounds(knobArea.removeFromTop(80));
+    bounds.removeFromTop(25); // Spacing
 
-    parameterRow.removeFromLeft(20); // Spacing
-    auto valueLabelArea = parameterRow.removeFromLeft(80);
-    parameterValueLabel.setBounds(valueLabelArea.withTrimmedTop(25));
+    // GrainShifter param row — three columns: name, value, slider stacked.
+    auto paramRow = bounds.removeFromTop(80);
+    const int paramColW = paramRow.getWidth() / 3;
+    auto layoutParamCol = [] (juce::Rectangle<int> col,
+                              juce::Label& nameLbl, juce::Label& valLbl, juce::Slider& s)
+    {
+        col = col.reduced(8, 0);
+        nameLbl.setBounds(col.removeFromTop(20));
+        valLbl .setBounds(col.removeFromTop(22).reduced(col.getWidth() / 4, 0));
+        col.removeFromTop(4);
+        s      .setBounds(col.removeFromTop(28));
+    };
+    layoutParamCol(paramRow.removeFromLeft(paramColW),
+                   pitchWindowLabel,    pitchWindowValueLabel,    pitchWindowSlider);
+    layoutParamCol(paramRow.removeFromLeft(paramColW),
+                   pitchHopLabel,       pitchHopValueLabel,       pitchHopSlider);
+    layoutParamCol(paramRow,
+                   pitchThresholdLabel, pitchThresholdValueLabel, pitchThresholdSlider);
 
-    bounds.removeFromTop(20); // Spacing
+    bounds.removeFromTop(15); // Spacing
 
-    // Process button
-    processButton.setBounds(bounds.removeFromTop(40).reduced(100, 0));
+    // Logging toggles — side by side, taller for visible checkbox
+    auto loggingRow = bounds.removeFromTop(40).reduced(60, 0);
+    loggingToggle     .setBounds(loggingRow.removeFromLeft(loggingRow.getWidth() / 2));
+    blockLoggingToggle.setBounds(loggingRow);
 
-    bounds.removeFromTop(10); // Spacing
-
-    // Logging toggle
-    loggingToggle.setBounds(bounds.removeFromTop(25).reduced(100, 0));
-
-    bounds.removeFromTop(10); // Spacing
-
-    // Status label
-    statusLabel.setBounds(bounds.removeFromTop(30));
 }
 
 void AudioFileTransformerEditor::timerCallback()
@@ -331,6 +441,21 @@ void AudioFileTransformerEditor::configureParameterControlForProcessor(ActivePro
 {
     // Drop any existing APVTS attachment before reconfiguring the slider range.
     mParamAttachment.reset();
+    mPitchWindowAttachment   .reset();
+    mPitchHopAttachment      .reset();
+    mPitchThresholdAttachment.reset();
+
+    const bool grainActive = (processor == ActiveProcessor::kGrainShifter);
+
+    pitchWindowLabel        .setVisible(grainActive);
+    pitchWindowValueLabel   .setVisible(grainActive);
+    pitchWindowSlider       .setVisible(grainActive);
+    pitchHopLabel           .setVisible(grainActive);
+    pitchHopValueLabel      .setVisible(grainActive);
+    pitchHopSlider          .setVisible(grainActive);
+    pitchThresholdLabel     .setVisible(grainActive);
+    pitchThresholdValueLabel.setVisible(grainActive);
+    pitchThresholdSlider    .setVisible(grainActive);
 
     if (processor == ActiveProcessor::kGain)
     {
@@ -347,8 +472,16 @@ void AudioFileTransformerEditor::configureParameterControlForProcessor(ActivePro
         auto* shifter = mProcessor.getGrainShifterNode();
         if (shifter != nullptr)
         {
-            mParamAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-                shifter->getAPVTS(), "shift_ratio", parameterSlider);
+            using SA = juce::AudioProcessorValueTreeState::SliderAttachment;
+            mParamAttachment           = std::make_unique<SA>(shifter->getAPVTS(), "shift_ratio",       parameterSlider);
+            mPitchWindowAttachment     = std::make_unique<SA>(shifter->getAPVTS(), "pitch_window_size", pitchWindowSlider);
+            mPitchHopAttachment        = std::make_unique<SA>(shifter->getAPVTS(), "pitch_hop_size",    pitchHopSlider);
+            mPitchThresholdAttachment  = std::make_unique<SA>(shifter->getAPVTS(), "pitch_threshold",   pitchThresholdSlider);
+
+            // Force value labels to refresh from current slider state.
+            pitchWindowSlider   .onValueChange();
+            pitchHopSlider      .onValueChange();
+            pitchThresholdSlider.onValueChange();
         }
     }
 }

@@ -329,7 +329,8 @@ TEST_CASE("AudioFileTransformerProcessor processes Somewhere_Stereo with logging
 
     const int numChans          = outputBuffer.getNumChannels();
     const int rowsPerBlock      = 2 + numChans;
-    const int expectedBlocks    = outputSampleCount / kBlockSize;
+    // Ceil — processBuffers' last partial block still calls processBlock with full blockSize.
+    const int expectedBlocks    = (outputSampleCount + kBlockSize - 1) / kBlockSize;
     const int expectedRows      = rowsPerBlock * expectedBlocks;
 
     auto countLines = [] (const juce::File& f)
@@ -344,4 +345,116 @@ TEST_CASE("AudioFileTransformerProcessor processes Somewhere_Stereo with logging
     processor.stopLogging();
     swapper.stopLogging();
     gainNode->stopLogging();
+}
+
+TEST_CASE("AFT GrainShifter e2e log",
+          "[AudioFileTransformerProcessor][DataLogger][file][GrainShifter]")
+{
+    TestUtils::SetupAndTeardown setup;
+
+    // Voiced fixture so PitchManager + Granulator actually produce events.
+    std::vector<juce::File> candidates = {
+        juce::File::getCurrentWorkingDirectory().getChildFile ("TESTS/TEST_FILES/Somewhere_Stereo.wav"),
+        juce::File::getCurrentWorkingDirectory().getChildFile ("TESTS/TEST_FILES/Somewhere_Mono.wav"),
+        juce::File (__FILE__).getParentDirectory().getParentDirectory()
+                             .getChildFile ("TEST_FILES/Somewhere_Stereo.wav"),
+        juce::File (__FILE__).getParentDirectory().getParentDirectory()
+                             .getChildFile ("TEST_FILES/Somewhere_Mono.wav")
+    };
+    juce::File inputFile;
+    for (const auto& f : candidates)
+        if (f.existsAsFile()) { inputFile = f; break; }
+    REQUIRE(inputFile.existsAsFile());
+
+    AudioFileTransformerProcessor processor;
+
+    juce::File rootDir = juce::File (__FILE__).getParentDirectory()
+                                              .getChildFile ("OUTPUT")
+                                              .getChildFile ("AFT GrainShifter e2e log")
+                                              .getChildFile ("TEST_CASE_ROOT_DIR");
+
+    const juce::String outputName = "DATA_LOG_OUTPUT_DIR";
+
+    processor.setDataLogRootDirectory (rootDir);
+    processor.setDataLogOutputName    (outputName);
+
+    processor.setActiveProcessor (ActiveProcessor::kGrainShifter);
+    auto* grainNode = processor.getGrainShifterNode();
+    REQUIRE(grainNode != nullptr);
+
+    auto& swapper      = processor.getBufferProcessingManager().getSwapper();
+    auto& pitchManager = grainNode->getPitchManager();
+    auto& granulator   = grainNode->getGranulator();
+
+    // startLogging on each RD_Processor in the chain (each clears its own output dir).
+    // PitchManager + Granulator are plain DataLoggers (no startLogging) — they pick up
+    // isLogging via the cascade from grainNode->setIsLogging.
+    processor.startLogging();
+    swapper.startLogging();
+    grainNode->startLogging();
+    // Per-block CSVs off for RD_Processor chain — cascade hits only RD_Processor children
+    // (dynamic_cast in RD_Processor::setIsBlockLogging), so PitchManager + Granulator
+    // (plain DataLoggers) keep firing their own logData unaffected.
+    processor.setIsBlockLogging (false);
+
+    constexpr size_t kMaxCsvBytes = 256 * 1024;
+    processor .setMaxCsvSizeBytes (kMaxCsvBytes);
+    swapper   .setMaxCsvSizeBytes (kMaxCsvBytes);
+    grainNode->setMaxCsvSizeBytes (kMaxCsvBytes);
+
+    REQUIRE(processor    .getIsLogging());
+    REQUIRE(swapper      .getIsLogging());
+    REQUIRE(grainNode    ->getIsLogging());
+    REQUIRE(pitchManager .getIsLogging());
+    REQUIRE(granulator   .getIsLogging());
+
+    processor.getFileToBufferManager().setInputFile (inputFile);
+
+    const bool transformOk = processor.doFileTransform();
+    INFO("transform error: " << processor.getLastTransformError().toStdString());
+    REQUIRE(transformOk);
+
+    // Directory layout: rootDir/outputName/<swapper>/<grain shifter>/{pitch_manager, granulator}
+    auto processorOutputDir = processor.getDataLogOutputDirectory();
+    auto swapperDir         = processorOutputDir.getChildFile (swapper.getName());
+    auto grainDir           = swapperDir.getChildFile (grainNode->getName());
+    auto pitchDir           = grainDir.getChildFile (pitchManager.getDataLogOutputName());
+    auto granDir            = grainDir.getChildFile (granulator.getDataLogOutputName());
+
+    REQUIRE(swapperDir.isDirectory());
+    REQUIRE(grainDir  .isDirectory());
+    REQUIRE(pitchDir  .isDirectory());
+    REQUIRE(granDir   .isDirectory());
+
+    // WAV under processor output dir.
+    juce::Array<juce::File> wavs;
+    processorOutputDir.findChildFiles (wavs, juce::File::findFiles, false, "*.wav");
+    REQUIRE_FALSE(wavs.isEmpty());
+
+    // Per-block CSVs disabled — must NOT exist at swapper or grain shifter levels.
+    REQUIRE_FALSE(swapperDir.getChildFile ("input_samples.csv" ).existsAsFile());
+    REQUIRE_FALSE(swapperDir.getChildFile ("output_samples.csv").existsAsFile());
+    REQUIRE_FALSE(grainDir  .getChildFile ("input_samples.csv" ).existsAsFile());
+    REQUIRE_FALSE(grainDir  .getChildFile ("output_samples.csv").existsAsFile());
+
+    // PitchManager fires its own logData inside detect/analysis/synthesis paths.
+    // Voiced fixture should produce all three CSVs with content.
+    auto detectCsv    = pitchDir.getChildFile ("detect_log.csv");
+    auto analysisCsv  = pitchDir.getChildFile ("analysis_marks_log.csv");
+    auto synthesisCsv = pitchDir.getChildFile ("synthesis_marks_log.csv");
+    REQUIRE(detectCsv   .existsAsFile());
+    REQUIRE(analysisCsv .existsAsFile());
+    REQUIRE(synthesisCsv.existsAsFile());
+    REQUIRE(detectCsv   .getSize() > 0);
+    REQUIRE(analysisCsv .getSize() > 0);
+    REQUIRE(synthesisCsv.getSize() > 0);
+
+    // Granulator writes synthesis_grains.csv when grains fire.
+    auto grainsCsv = granDir.getChildFile ("synthesis_grains.csv");
+    REQUIRE(grainsCsv.existsAsFile());
+    REQUIRE(grainsCsv.getSize() > 0);
+
+    processor.stopLogging();
+    swapper  .stopLogging();
+    grainNode->stopLogging();
 }

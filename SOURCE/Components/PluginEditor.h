@@ -32,6 +32,22 @@ private:
     juce::Label statusLabel;
 
     juce::ToggleButton loggingToggle;
+    juce::ToggleButton blockLoggingToggle;
+
+    juce::Label    blockSizeLabel;
+    juce::ComboBox blockSizeSelector;
+
+    // GrainShifter parameter controls (visible only when GrainShifter is active)
+    juce::Label  pitchWindowLabel,    pitchWindowValueLabel;
+    juce::Slider pitchWindowSlider;
+    juce::Label  pitchHopLabel,       pitchHopValueLabel;
+    juce::Slider pitchHopSlider;
+    juce::Label  pitchThresholdLabel, pitchThresholdValueLabel;
+    juce::Slider pitchThresholdSlider;
+
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mPitchWindowAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mPitchHopAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> mPitchThresholdAttachment;
 
     // Processor selection
     juce::Label processorLabel;

@@ -23,6 +23,9 @@ public:
     RD_ProcessorSwapper&       getSwapper()       { return mSwapper; }
     const RD_ProcessorSwapper& getSwapper() const { return mSwapper; }
 
+    void setBlockSize(int blockSize) { mBlockSize = blockSize; }
+    int  getBlockSize() const        { return mBlockSize; }
+
     //==============================================================================
     bool processBuffers(const juce::AudioBuffer<float>& inputStorage,
                         juce::AudioBuffer<float>&       outputStorage,
@@ -43,7 +46,8 @@ private:
     void _refreshActiveLoggerChild();
 
     RD_ProcessorSwapper mSwapper;
-    juce::String lastError = "-";
+    int          mBlockSize = 512;
+    juce::String lastError  = "-";
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(BufferProcessingManager)
 };
